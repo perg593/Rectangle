@@ -4,18 +4,18 @@
 /// See docs/2026-06-23-Design-M0.5-Architecture-Spike.md.
 ///
 /// These prove the parallel custom-layout data path:
-///   - `HotkeyData` mirrors Rectangle's own `Shortcut` Codable (WindowAction.swift),
+///   - `SpikeHotkeyData` mirrors Rectangle's own `Shortcut` Codable (WindowAction.swift),
 ///     which is the canonical on-disk MASShortcut representation
 ///     ({ keyCode: Int, modifierFlags: UInt }), so the spike commits ONE concrete
 ///     serialization (rev2 #3 / rev3 #4).
-///   - `NormalizedRect` is top-left-origin fractions of a screen's visibleFrame.
+///   - `SpikeNormalizedRect` is top-left-origin fractions of a screen's visibleFrame.
 
 import Cocoa
 import MASShortcut
 
 /// Canonical hotkey serialization for a custom layout. Mirrors Rectangle's
 /// `Shortcut` (keyCode + modifierFlags) and round-trips through MASShortcut.
-struct HotkeyData: Codable, Equatable {
+struct SpikeHotkeyData: Codable, Equatable {
     let keyCode: Int
     let modifierFlags: UInt
     var schemaVersion: Int = 1
@@ -40,7 +40,7 @@ struct HotkeyData: Codable, Equatable {
 /// A rectangle expressed as fractions of a screen's visibleFrame, **top-left
 /// origin** (x from the left edge, y from the TOP edge) — the intuitive Divvy
 /// framing. Converted to AppKit (bottom-left) coordinates at apply time.
-struct NormalizedRect: Codable, Equatable {
+struct SpikeNormalizedRect: Codable, Equatable {
     var x: CGFloat
     var y: CGFloat
     var w: CGFloat
@@ -62,6 +62,6 @@ struct NormalizedRect: Codable, Equatable {
 struct SpikeCustomLayout: Identifiable {
     let id: UUID
     var name: String
-    var rect: NormalizedRect
-    var hotkey: HotkeyData?
+    var rect: SpikeNormalizedRect
+    var hotkey: SpikeHotkeyData?
 }

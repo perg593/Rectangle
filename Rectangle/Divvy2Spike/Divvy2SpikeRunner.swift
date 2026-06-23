@@ -355,7 +355,7 @@ enum Divvy2SpikeRunner {
         let visible = screens.currentScreen.visibleFrame
         let primaryMaxY = NSScreen.screens[0].frame.maxY
 
-        func moveAndReadBack(_ norm: NormalizedRect) -> CGRect? {
+        func moveAndReadBack(_ norm: SpikeNormalizedRect) -> CGRect? {
             let appKit = norm.appKitRect(in: visible)
             let expected = expectedAX(appKit, primaryMaxY)
             windowEl.setFrame(appKit.screenFlipped)
@@ -369,7 +369,7 @@ enum Divvy2SpikeRunner {
         let beforeRestore = windowHistory.restoreRects
         // Compare full VALUES (not just keys) of lastRectangleActions via a stable projection.
         let beforeActions = String(describing: windowHistory.lastRectangleActions)
-        let full = NormalizedRect(x: 0.05, y: 0.05, w: 0.9, h: 0.9)
+        let full = SpikeNormalizedRect(x: 0.05, y: 0.05, w: 0.9, h: 0.9)
         let readBack1 = moveAndReadBack(full)
         let readBack2 = moveAndReadBack(full) // idempotency
         var ok4 = true
@@ -384,8 +384,8 @@ enum Divvy2SpikeRunner {
 
         // --- Check 5: coordinate contract with independent ground truth ---
         var ok5 = true
-        let topHalf = NormalizedRect(x: 0, y: 0, w: 1, h: 0.5)
-        let bottomHalf = NormalizedRect(x: 0, y: 0.5, w: 1, h: 0.5)
+        let topHalf = SpikeNormalizedRect(x: 0, y: 0, w: 1, h: 0.5)
+        let bottomHalf = SpikeNormalizedRect(x: 0, y: 0.5, w: 1, h: 0.5)
         let topAppKit = topHalf.appKitRect(in: visible)
         let bottomAppKit = bottomHalf.appKitRect(in: visible)
 
@@ -457,7 +457,7 @@ enum Divvy2SpikeRunner {
     // MARK: - Check 6: hotkey serialization
 
     private static func check6Serialization(_ report: Report) {
-        report.section("Check 6 — hotkey serialization (MASDictionaryTransformer ⇄ HotkeyData)")
+        report.section("Check 6 — hotkey serialization (MASDictionaryTransformer ⇄ SpikeHotkeyData)")
         var ok = true
         let shortcut = mas(124, [.command, .shift]) // 124 = right arrow
         guard let t = ValueTransformer(forName: NSValueTransformerName(rawValue: MASDictionaryTransformerName)) else {
@@ -489,16 +489,16 @@ enum Divvy2SpikeRunner {
                            && (emitted?["modifierFlags"] as? UInt) == shortcut.modifierFlags.rawValue,
                            "MASShortcutView recorder emits the SAME {keyCode, modifierFlags} dict to defaults") && ok
         UserDefaults.standard.removeObject(forKey: recKey)
-        // HotkeyData mirrors that dict and JSON round-trips.
-        let hk = HotkeyData(shortcut)
+        // SpikeHotkeyData mirrors that dict and JSON round-trips.
+        let hk = SpikeHotkeyData(shortcut)
         ok = report.assert(hk.keyCode == shortcut.keyCode && hk.modifierFlags == shortcut.modifierFlags.rawValue,
-                           "HotkeyData captures keyCode + modifierFlags") && ok
-        if let data = try? JSONEncoder().encode(hk), let decoded = try? JSONDecoder().decode(HotkeyData.self, from: data) {
+                           "SpikeHotkeyData captures keyCode + modifierFlags") && ok
+        if let data = try? JSONEncoder().encode(hk), let decoded = try? JSONDecoder().decode(SpikeHotkeyData.self, from: data) {
             ok = report.assert(decoded == hk && decoded.toMASShortcut().keyCode == shortcut.keyCode
                                && decoded.toMASShortcut().modifierFlags == shortcut.modifierFlags,
-                               "HotkeyData JSON round-trip preserves the chord (schemaVersion \(hk.schemaVersion))") && ok
+                               "SpikeHotkeyData JSON round-trip preserves the chord (schemaVersion \(hk.schemaVersion))") && ok
         } else { ok = false }
-        report.note("- Canonical HotkeyData: `{ keyCode: Int, modifierFlags: UInt, schemaVersion: Int = 1 }`, persisted under `com.perg593.divvy2.customLayouts`. Proven above that the real MASShortcutView recorder emits exactly this `{keyCode, modifierFlags}` dict — so HotkeyData is interchangeable with the recorder's on-disk output.")
+        report.note("- Canonical SpikeHotkeyData: `{ keyCode: Int, modifierFlags: UInt, schemaVersion: Int = 1 }`, persisted under `com.perg593.divvy2.customLayouts`. Proven above that the real MASShortcutView recorder emits exactly this `{keyCode, modifierFlags}` dict — so SpikeHotkeyData is interchangeable with the recorder's on-disk output.")
         record(report, name: "Check 6", passed: ok)
     }
 
