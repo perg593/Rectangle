@@ -477,6 +477,7 @@ enum Divvy2SpikeRunner {
         }
         // Recorder-emission proof: a REAL MASShortcutView bound to a temp key emits the same dict.
         let recKey = "com.perg593.divvy2.spike.recorder." + UUID().uuidString
+        addCleanup { UserDefaults.standard.removeObject(forKey: recKey) } // crash-safe temp-key removal
         let view = MASShortcutView()
         view.setAssociatedUserDefaultsKey(recKey, withTransformerName: MASDictionaryTransformerName)
         view.shortcutValue = shortcut
