@@ -142,6 +142,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.initializeTodo()
         checkForProblematicApps()
         MacTilingDefaults.checkForBuiltInTiling(skipIfAlreadyNotified: true)
+
+        // M0.5 architecture spike: only when explicitly requested via launch arg.
+        // Runs here (not in applicationDidFinishLaunching) so applicationToggle is non-nil.
+        if CommandLine.arguments.contains("--divvy2-spike") {
+            Divvy2SpikeRunner.run(applicationToggle: applicationToggle, windowHistory: AppDelegate.windowHistory)
+        }
     }
     
     func checkForConflictingApps() {
