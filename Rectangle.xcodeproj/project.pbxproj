@@ -1200,7 +1200,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.knollsoft.RectangleLauncher;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.RectangleLauncher;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1228,7 +1228,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.knollsoft.RectangleLauncher;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.RectangleLauncher;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -1386,8 +1386,9 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 0.96;
-				PRODUCT_BUNDLE_IDENTIFIER = com.knollsoft.Rectangle;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2;
+				PRODUCT_MODULE_NAME = Rectangle;
+				PRODUCT_NAME = "Moving Van";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Rectangle/Rectangle-Bridging-Header.h";
@@ -1418,8 +1419,9 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 0.96;
-				PRODUCT_BUNDLE_IDENTIFIER = com.knollsoft.Rectangle;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2;
+				PRODUCT_MODULE_NAME = Rectangle;
+				PRODUCT_NAME = "Moving Van";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Rectangle/Rectangle-Bridging-Header.h";
@@ -1444,11 +1446,11 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.ryanhanson.RectangleTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.RectangleTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rectangle.app/Contents/MacOS/Rectangle";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Moving Van.app/Contents/MacOS/Moving Van";
 			};
 			name = Debug;
 		};
@@ -1469,11 +1471,11 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.ryanhanson.RectangleTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.RectangleTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rectangle.app/Contents/MacOS/Rectangle";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Moving Van.app/Contents/MacOS/Moving Van";
 			};
 			name = Release;
 		};

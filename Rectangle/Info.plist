@@ -12,6 +12,8 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleDisplayName</key>
+	<string>Moving Van</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
@@ -41,11 +43,5 @@
 	<string>Main</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>SUFeedURL</key>
-	<string>https://rectangleapp.com/downloads/updates.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>lpt9M3PhocbZ3MZiLH+crEqRfU11kfoNzGxSqiEIdvM=</string>
-	<key>SUScheduledCheckInterval</key>
-	<integer>172800</integer>
 </dict>
 </plist>

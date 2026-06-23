@@ -29,7 +29,7 @@ extension Defaults {
             codableDefaults[exportableDefault.key] = exportableDefault.toCodable()
         }
                 
-        let config = Config(bundleId: "com.knollsoft.Rectangle",
+        let config = Config(bundleId: "com.perg593.divvy2",
                             version: version,
                             shortcuts: shortcuts,
                             defaults: codableDefaults)
