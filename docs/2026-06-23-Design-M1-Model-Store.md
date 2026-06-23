@@ -1,6 +1,6 @@
 # Design: M1 — CustomLayout model + store + tests
 
-Status: **Proposed — rev 2** (addresses Codex round-1: 1 BLOCKER + 2 MAJOR)
+Status: **Proposed — rev 3** (addresses Codex round-2: 1 MAJOR + 1 MINOR)
 Date: 2026-06-23
 Branch: `feature/m0-fork-branding` (integration branch; M1 builds on M0 + M0.5)
 Parent: [`2026-06-23-Plan-Divvy2-Window-Snapper.md`](2026-06-23-Plan-Divvy2-Window-Snapper.md) §3.1/§3.2/§5
@@ -18,8 +18,10 @@ the SAME `Rectangle` module and Swift type names are module-scoped, so the spike
 `HotkeyData` / `NormalizedRect` (`Rectangle/Divvy2Spike/Divvy2SpikeTypes.swift`) would COLLIDE with
 the production types and fail to build. Before adding production types, **rename the spike's
 duplicated types** `HotkeyData → SpikeHotkeyData` and `NormalizedRect → SpikeNormalizedRect` (and
-update their uses in `SpikeCustomLayoutShortcutManager.swift` / `Divvy2SpikeRunner.swift`;
-`SpikeCustomLayout` is already prefixed). The spike stays runnable behind `--divvy2-spike`;
+update the declarations AND every use: `SpikeCustomLayout`'s `rect`/`hotkey` field types in
+`Divvy2SpikeTypes.swift`, plus the runner/manager uses in `SpikeCustomLayoutShortcutManager.swift` /
+`Divvy2SpikeRunner.swift`; `SpikeCustomLayout` itself is already prefixed). The spike stays runnable
+behind `--divvy2-spike`;
 production owns the clean `HotkeyData` / `NormalizedRect`. Verify a green build of the renamed spike
 before writing production code. (Full spike removal remains a later/M4 cleanup.)
 
@@ -133,17 +135,20 @@ enum ImportError: Error { case decode, unsupportedSchema, invalidLayout, duplica
   Rectangle's reload pattern). M2's `CustomLayoutShortcutManager` subscribes to re-register.
 
 ### 2.4 Robustness / failure handling — load vs import are DIFFERENT contracts (C1#importVsLoad)
-- **`loadFromDefaults` (tolerant; called at init/reload).** Decode the envelope; missing key → empty
-  store. Corrupt/undecodable JSON → log, keep an empty in-memory store, and DO NOT overwrite the bad
-  data (a subsequent successful mutation overwrites it). Individually invalid layouts
-  (`!rect.isValid`, or a duplicate id) are dropped-with-log and the valid remainder kept. The stored
-  raw data is left intact until the next successful mutation. Tolerance here protects against a
-  partially-bad defaults blob without destroying recoverable data.
-- **Schema / migration.** `migrate(envelope:)` switches on `schemaVersion`; v1 is identity. If
-  `schemaVersion > currentSchemaVersion` (a newer app wrote it): set `isReadOnlyFutureSchema = true`,
-  expose whatever decoded as READ-ONLY `layouts`, log, and **leave defaults untouched** — all
-  mutators then return `false` and never persist, so future data is never downgraded. Recovery is an
-  explicit `importJSON` (replace) or a future migration path.
+- **`loadFromDefaults` (tolerant; called at init/reload) — HEADER FIRST (C2#headerFirst).** Read the
+  raw `Data`; missing key → empty store. **Step 1 — decode only the version header** with a minimal
+  `struct EnvelopeHeader: Decodable { let schemaVersion: Int }`. If the header itself won't decode
+  (truly corrupt/foreign JSON) → log, empty in-memory store, DO NOT overwrite the bad bytes. **Step 2
+  — if `header.schemaVersion > currentSchemaVersion`** (a newer app wrote it): set
+  `isReadOnlyFutureSchema = true`, leave defaults untouched, expose an empty (or best-effort decoded)
+  `layouts`, and make ALL mutators no-op — this happens BEFORE attempting to decode `layouts`, so it
+  holds even if the future `layouts` shape is undecodable by v1 (the exact gap Codex flagged). **Step
+  3 — otherwise decode the full `CustomLayoutsEnvelope` tolerantly:** individually invalid layouts
+  (`!rect.isValid`, or a duplicate id) are dropped-with-log and the valid remainder kept; the stored
+  raw bytes are left intact until the next successful mutation.
+- **Migration.** `migrate(envelope:)` switches on `schemaVersion` for KNOWN versions `<= current`;
+  v1 is identity. Future versions are handled by the read-only path above (never downgraded).
+  Recovery from read-only is an explicit `importJSON` (replace) or a future migration path.
 - **`importJSON` (STRICT, atomic, all-or-nothing).** Decode the envelope → `.decode` on failure.
   Reject `schemaVersion > currentSchemaVersion` → `.unsupportedSchema`. Validate EVERY layout
   (`rect.isValid`) → `.invalidLayout` on any failure; reject any duplicate id → `.duplicateId`. Only
@@ -192,9 +197,12 @@ Synthetic `visibleFrame`s standing in for the real matrix (no real displays need
 - **Load tolerance:** corrupt JSON → empty store, bad data NOT overwritten until next mutation; a
   blob with one invalid + one valid layout loads only the valid one (the raw blob stays until a
   mutation).
-- **Future schema:** a stored envelope with `schemaVersion = currentSchemaVersion + 1` → store loads
-  read-only (`isReadOnlyFutureSchema == true`), every mutator returns `false`, and the on-disk
-  defaults are byte-identical afterwards (no downgrade). A subsequent `importJSON` clears the flag.
+- **Future schema (two cases):** (a) a stored envelope with `schemaVersion = currentSchemaVersion+1`
+  and otherwise-valid layouts → read-only (`isReadOnlyFutureSchema == true`), every mutator returns
+  `false`, defaults byte-identical afterwards; (b) **a future-schema envelope whose `layouts` payload
+  is NOT decodable by v1** (e.g. a renamed/retyped field) → STILL read-only and mutators still return
+  `false` with defaults byte-identical (proves the header-first decode, not full-envelope decode,
+  drives the read-only gate). A subsequent `importJSON` clears the flag.
 - **Import strictness (atomic):** happy path returns `.success(count)` and replaces all; a payload
   with ANY invalid layout returns `.failure(.invalidLayout)` and leaves in-memory AND defaults
   unchanged; a duplicate id → `.failure(.duplicateId)`, unchanged; malformed bytes →
