@@ -1,6 +1,6 @@
 # Design: M1 — CustomLayout model + store + tests
 
-Status: **Proposed** (awaiting adversarial Codex review before implementation)
+Status: **Proposed — rev 2** (addresses Codex round-1: 1 BLOCKER + 2 MAJOR)
 Date: 2026-06-23
 Branch: `feature/m0-fork-branding` (integration branch; M1 builds on M0 + M0.5)
 Parent: [`2026-06-23-Plan-Divvy2-Window-Snapper.md`](2026-06-23-Plan-Divvy2-Window-Snapper.md) §3.1/§3.2/§5
@@ -10,9 +10,19 @@ NormalizedRect→pixel, screen selection, no-history apply path).
 ## 0. Scope & gate
 M1 delivers the PRODUCTION model + persistence + the fraction→pixel mapping, with unit tests —
 **no hotkey registration (M2), no UI (M3), no apply path wiring (M2)**. The M0.5 spike already
-proved the runtime path; M1 turns the throwaway spike stubs (`Rectangle/Divvy2Spike/`) into real,
-tested types under a new isolated subsystem `Rectangle/CustomLayouts/` (minimal upstream coupling,
-R2). The spike code stays untouched (behind `--divvy2-spike`); it is removed at M4 cleanup.
+proved the runtime path; M1 adds real, tested types under a new isolated subsystem
+`Rectangle/CustomLayouts/` (minimal upstream coupling, R2).
+
+**Mandatory pre-step (C1#collision): de-duplicate spike type names.** The spike files compile into
+the SAME `Rectangle` module and Swift type names are module-scoped, so the spike's top-level
+`HotkeyData` / `NormalizedRect` (`Rectangle/Divvy2Spike/Divvy2SpikeTypes.swift`) would COLLIDE with
+the production types and fail to build. Before adding production types, **rename the spike's
+duplicated types** `HotkeyData → SpikeHotkeyData` and `NormalizedRect → SpikeNormalizedRect` (and
+update their uses in `SpikeCustomLayoutShortcutManager.swift` / `Divvy2SpikeRunner.swift`;
+`SpikeCustomLayout` is already prefixed). The spike stays runnable behind `--divvy2-spike`;
+production owns the clean `HotkeyData` / `NormalizedRect`. Verify a green build of the renamed spike
+before writing production code. (Full spike removal remains a later/M4 cleanup.)
+
 **Gate: `swift`/`xcodebuild` build + `xcodebuild test` (the new tests) green, then a Codex
 checkpoint before M2.**
 
@@ -92,38 +102,59 @@ final class CustomLayoutStore {
   static let defaultsKey = "com.perg593.divvy2.customLayouts"
   static let currentSchemaVersion = 1
   private(set) var layouts: [CustomLayout]
+  /// True when the stored envelope's schemaVersion > currentSchemaVersion (a NEWER app wrote it).
+  /// In this state `layouts` is exposed READ-ONLY and all mutators fail WITHOUT touching defaults,
+  /// so we never downgrade/overwrite future data (C1#schema). Recovery: importJSON (explicit
+  /// replace) or a future migration.
+  private(set) var isReadOnlyFutureSchema: Bool
   init(userDefaults: UserDefaults = .standard)   // injectable for tests (isolated suite)
 
   func layout(id: UUID) -> CustomLayout?
-  func add(_ layout: CustomLayout)               // append; persists; notifies
-  func update(_ layout: CustomLayout)            // replace by id; no-op if absent
-  func delete(id: UUID)
-  func setHotkey(_ hotkey: HotkeyData?, for id: UUID)
+  // Mutators return false (no-op) when read-only; true on success. All persist + notify on success.
+  @discardableResult func add(_ layout: CustomLayout) -> Bool         // rejects duplicate id
+  @discardableResult func update(_ layout: CustomLayout) -> Bool      // false if id absent or read-only
+  @discardableResult func delete(id: UUID) -> Bool
+  @discardableResult func setHotkey(_ hotkey: HotkeyData?, for id: UUID) -> Bool
 
   func exportJSON() -> Data                       // the envelope, pretty-printed
-  @discardableResult func importJSON(_ data: Data) -> Result<Int, ImportError>  // replace-all; count or error
+  @discardableResult func importJSON(_ data: Data) -> Result<Int, ImportError>  // STRICT atomic replace-all
   func reload()                                   // re-read from defaults (for external changes)
 }
+enum ImportError: Error { case decode, unsupportedSchema, invalidLayout, duplicateId }
 ```
 - **Mutations run on the main thread** (assert `Thread.isMainThread` in DEBUG); the store is not
   thread-safe by design (UI + hotkey manager both touch it on main, like Rectangle's own state).
+- `add` with an id already present returns `false` (use `update`). In read-only future-schema state
+  every mutator returns `false` and does NOT write defaults.
 
 ### 2.3 Change notification
 - On every successful mutation (add/update/delete/setHotkey/importJSON), post
   `Notification.Name.customLayoutsChanged` (defined in our own file, our own channel — mirrors
   Rectangle's reload pattern). M2's `CustomLayoutShortcutManager` subscribes to re-register.
 
-### 2.4 Robustness / failure handling
-- **Load:** decode the envelope; on missing key → empty store. On corrupt/undecodable JSON → log,
-  keep an empty in-memory store, and DO NOT overwrite the bad data (so a user can recover it); a
-  subsequent successful mutation overwrites. Invalid individual layouts (`!rect.isValid`, empty id
-  collisions) are dropped with a log, valid ones kept.
-- **Migration:** `migrate(envelope:)` switch on `schemaVersion`; v1 is identity. Unknown HIGHER
-  version than `currentSchemaVersion` → load read-only-ish (keep data, log) rather than corrupting.
-- **Export/import** round-trip independently of Rectangle's own config import/export (we do NOT rely
-  on Rectangle's config touching our key). `importJSON` validates the envelope, rejects on decode
-  error or unsupported schema, and is **replace-all** (atomic: only commit if the whole payload
-  decodes + validates).
+### 2.4 Robustness / failure handling — load vs import are DIFFERENT contracts (C1#importVsLoad)
+- **`loadFromDefaults` (tolerant; called at init/reload).** Decode the envelope; missing key → empty
+  store. Corrupt/undecodable JSON → log, keep an empty in-memory store, and DO NOT overwrite the bad
+  data (a subsequent successful mutation overwrites it). Individually invalid layouts
+  (`!rect.isValid`, or a duplicate id) are dropped-with-log and the valid remainder kept. The stored
+  raw data is left intact until the next successful mutation. Tolerance here protects against a
+  partially-bad defaults blob without destroying recoverable data.
+- **Schema / migration.** `migrate(envelope:)` switches on `schemaVersion`; v1 is identity. If
+  `schemaVersion > currentSchemaVersion` (a newer app wrote it): set `isReadOnlyFutureSchema = true`,
+  expose whatever decoded as READ-ONLY `layouts`, log, and **leave defaults untouched** — all
+  mutators then return `false` and never persist, so future data is never downgraded. Recovery is an
+  explicit `importJSON` (replace) or a future migration path.
+- **`importJSON` (STRICT, atomic, all-or-nothing).** Decode the envelope → `.decode` on failure.
+  Reject `schemaVersion > currentSchemaVersion` → `.unsupportedSchema`. Validate EVERY layout
+  (`rect.isValid`) → `.invalidLayout` on any failure; reject any duplicate id → `.duplicateId`. Only
+  if the ENTIRE payload decodes + validates does it commit (replace-all in memory + defaults + one
+  notification) and return `.success(count)`. On ANY error the in-memory state AND defaults are left
+  exactly as they were — import never partially succeeds or loses data. (This is the key difference
+  from the tolerant load: load drops bad items to salvage data already on disk; import refuses bad
+  input wholesale so the user's current set isn't silently altered.) `importJSON` also clears
+  `isReadOnlyFutureSchema` on success (the user has explicitly chosen new content).
+- Export/import round-trip independently of Rectangle's own config import/export (we do NOT rely on
+  Rectangle's config touching our key).
 - **Duplicate hotkeys are NOT validated here** — conflict detection is M2 (needs the live
   `MASShortcutMonitor` + `WindowAction` set). The store may hold two layouts with the same chord; M2
   rejects the bind. Documented boundary.
@@ -151,15 +182,25 @@ Synthetic `visibleFrame`s standing in for the real matrix (no real displays need
   the `{keyCode, modifierFlags}` dict (re-asserting the spike result at the unit level).
 
 ### 3.4 Store CRUD + persistence + versioning
-- add/update/delete/setHotkey mutate in-memory AND survive a reload (new store instance on the same
-  suite). `update`/`delete` of an absent id are no-ops. Envelope `schemaVersion == 1` persisted.
-- Change notification fires exactly once per mutation (XCTNSNotificationExpectation).
+- add/update/delete/setHotkey return `true` and mutate in-memory AND survive a reload (new store
+  instance on the same suite). `update`/`delete`/`setHotkey` of an absent id return `false` (no-op);
+  `add` of an already-present id returns `false`. Envelope `schemaVersion == 1` persisted.
+- Change notification fires exactly once per SUCCESSFUL mutation, and NOT on a failed/no-op mutation
+  (XCTNSNotificationExpectation, isInverted for the no-op case).
 
-### 3.5 Robustness
-- Corrupt JSON in the key → empty store, bad data NOT overwritten until next mutation.
-- `importJSON` happy path returns count; malformed payload returns `.failure` and leaves the store
-  unchanged (atomic replace-all); higher unknown schema handled without data loss.
-- Invalid layout in a payload is dropped on load; valid ones kept.
+### 3.5 Robustness — load tolerance vs import strictness + future schema
+- **Load tolerance:** corrupt JSON → empty store, bad data NOT overwritten until next mutation; a
+  blob with one invalid + one valid layout loads only the valid one (the raw blob stays until a
+  mutation).
+- **Future schema:** a stored envelope with `schemaVersion = currentSchemaVersion + 1` → store loads
+  read-only (`isReadOnlyFutureSchema == true`), every mutator returns `false`, and the on-disk
+  defaults are byte-identical afterwards (no downgrade). A subsequent `importJSON` clears the flag.
+- **Import strictness (atomic):** happy path returns `.success(count)` and replaces all; a payload
+  with ANY invalid layout returns `.failure(.invalidLayout)` and leaves in-memory AND defaults
+  unchanged; a duplicate id → `.failure(.duplicateId)`, unchanged; malformed bytes →
+  `.failure(.decode)`, unchanged; `schemaVersion > current` → `.failure(.unsupportedSchema)`,
+  unchanged. (Explicitly assert the store's `layouts` and the raw defaults are untouched on each
+  failure — proving import never partially succeeds.)
 
 ## 4. Risks / open questions
 - **R-m1-1 Rounding vs Rectangle's own math.** We deliberately own edge-rounding (§1.2). Rectangle's
@@ -167,9 +208,11 @@ Synthetic `visibleFrame`s standing in for the real matrix (no real displays need
   separate subsystem. Tests pin our behavior.
 - **R-m1-2 `CGFloat` Codable.** `CGFloat` is Codable on macOS; tests cover encode/decode. If any
   platform quirk appears, store as `Double` and bridge.
-- **R-m1-3 Spike/production duplication.** `HotkeyData`/`NormalizedRect` names exist in both the
-  (throwaway) spike and production. They live in different files/dirs; the spike is removed at M4.
-  No shared dependency — production does not import spike code.
+- **R-m1-3 Spike/production name collision (RESOLVED in §0 pre-step).** Swift type names are
+  module-scoped and the spike compiles into the same `Rectangle` target, so duplicate top-level
+  `HotkeyData`/`NormalizedRect` would NOT compile. M1's mandatory pre-step renames the spike copies
+  to `SpikeHotkeyData`/`SpikeNormalizedRect` (verified by a green build) before production types are
+  added; production then owns the clean names. Production never imports/depends on spike code.
 - **R-m1-4 Screen selection** is reused from Rectangle (`ScreenDetection`, proven in the spike) and
   is exercised in M2's apply path, not unit-tested here (needs real `NSScreen`s). M1 tests the pure
   mapping only; this boundary is explicit.
