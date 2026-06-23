@@ -12,7 +12,9 @@
 		12D896200936C0DE9FF41FB4 /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
 		14DBE979E4453E13A3BF5C17 /* TopCenterRightTwelfthCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D034DBD7EFAC4CF5F8D67B /* TopCenterRightTwelfthCalculation.swift */; };
 		15E8CA7F6AC3EA2C4FB1424C /* BottomRightTwelfthCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D038C68560DC11F14496F6 /* BottomRightTwelfthCalculation.swift */; };
+		256DAA60E79B82DF2F9802BA /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98F472ABDB5B7AFBECB3D79 /* main.swift */; };
 		2D240EE416CC03AC921E3A4F /* BottomRightSixteenthCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482EA970820F37C6917FCD98 /* BottomRightSixteenthCalculation.swift */; };
+		2F2518BC6AA3D9EBE7E12C84 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EF104BDB48AE421AEEF481CB /* Cocoa.framework */; };
 		30166BD024F27D6A00A38608 /* SpecifiedCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30166BCF24F27D6A00A38608 /* SpecifiedCalculation.swift */; };
 		36F2F6E9C703ABEA92420A9E /* Divvy2SpikeTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4F531047CB23D1676138D9 /* Divvy2SpikeTypes.swift */; };
 		3FA1D2E6C9B4623227F680CF /* TopLeftSixteenthCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6294D2CB6E3D8ED982F418AE /* TopLeftSixteenthCalculation.swift */; };
@@ -196,6 +198,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		307BDFBB7A96D3611DB0F6B1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9824700122AF9B7D0037B409 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 661CD424D7D34F27CAC886FE;
+			remoteInfo = Divvy2SpikeHelper;
+		};
 		9824701C22AF9B7E0037B409 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9824700122AF9B7D0037B409 /* Project object */;
@@ -259,6 +268,7 @@
 		944F25D02CE5A144004B2FD2 /* ShortcutRecordingObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecordingObserverTests.swift; sourceTree = "<group>"; };
 		94E9B08D2C3B8D97004C7F41 /* MacTilingDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacTilingDefaults.swift; sourceTree = "<group>"; };
 		94E9B08F2C3E4578004C7F41 /* StringExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringExtension.swift; sourceTree = "<group>"; };
+		9688FD1A7FFDEC385D6980FE /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9698D1D9EE0180D7C4468304 /* TopCenterLeftTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCenterLeftTwelfthCalculation.swift; sourceTree = "<group>"; };
 		9808018523D05C0B0077774A /* RectangleRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RectangleRelease.entitlements; sourceTree = "<group>"; };
 		9808018623D05C1F0077774A /* RectangleLauncherRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RectangleLauncherRelease.entitlements; sourceTree = "<group>"; };
@@ -365,6 +375,7 @@
 		9FF740222E34DE9000D22955 /* CenterThreeFourthsCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CenterThreeFourthsCalculation.swift; sourceTree = "<group>"; };
 		A3B5B09465C38F8B766B3C3C /* UpperMiddleRightSixteenthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpperMiddleRightSixteenthCalculation.swift; sourceTree = "<group>"; };
 		A4D034DBD7EFAC4CF5F8D67B /* TopCenterRightTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCenterRightTwelfthCalculation.swift; sourceTree = "<group>"; };
+		A98F472ABDB5B7AFBECB3D79 /* main.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		AA040C66290B2640003181D5 /* RunLoopThread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunLoopThread.swift; sourceTree = "<group>"; };
 		AA0ABFFF291C1B5E00D125D2 /* CGExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGExtension.swift; sourceTree = "<group>"; };
 		AA0AC001291C1B9100D125D2 /* AXExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXExtension.swift; sourceTree = "<group>"; };
@@ -390,6 +401,7 @@
 		BEBF3EA35F0C110A170EAD33 /* UpperMiddleCenterRightSixteenthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpperMiddleCenterRightSixteenthCalculation.swift; sourceTree = "<group>"; };
 		C1A362206B9F76C269D8F469 /* BottomCenterRightTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCenterRightTwelfthCalculation.swift; sourceTree = "<group>"; };
 		C796BCAA3DA5F85B55A7EE83 /* LowerMiddleLeftSixteenthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LowerMiddleLeftSixteenthCalculation.swift; sourceTree = "<group>"; };
+		C91420EBE94CF1DCF32C1D55 /* Divvy2SpikeHelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Divvy2SpikeHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0423D8227A8D31D008A4894 /* HorizontalThirdsRepeated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalThirdsRepeated.swift; sourceTree = "<group>"; };
 		D04CE2FF2781794E00BD47B3 /* TopLeftNinthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopLeftNinthCalculation.swift; sourceTree = "<group>"; };
 		D04CE30127817A6100BD47B3 /* TopCenterNinthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopCenterNinthCalculation.swift; sourceTree = "<group>"; };
@@ -409,6 +421,7 @@
 		D7D038C68560DC11F14496F6 /* BottomRightTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomRightTwelfthCalculation.swift; sourceTree = "<group>"; };
 		D9FDCA1333C1BF6930A8D7F3 /* TopLeftTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopLeftTwelfthCalculation.swift; sourceTree = "<group>"; };
 		EEABF10E66D648DDB37DABBA /* MiddleLeftTwelfthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiddleLeftTwelfthCalculation.swift; sourceTree = "<group>"; };
+		EF104BDB48AE421AEEF481CB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		F3592F8E85CE82B8FA662A31 /* TwelfthsRepeated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwelfthsRepeated.swift; sourceTree = "<group>"; };
 		FA34D0FE2F7E896E00EEBEF1 /* SpecificDisplayCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecificDisplayCalculation.swift; sourceTree = "<group>"; };
 		FD222258713B13274FB651B0 /* TopRightSixteenthCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopRightSixteenthCalculation.swift; sourceTree = "<group>"; };
@@ -442,6 +455,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA546F98B0EB6161EAD545C9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2F2518BC6AA3D9EBE7E12C84 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -455,6 +476,16 @@
 			name = Divvy2Spike;
 			path = Divvy2Spike;
 			sourceTree = "<group>";
+		};
+		8F5BC53C9BD6D50452D7F9EA /* Divvy2SpikeHelper */ = {
+			isa = PBXGroup;
+			children = (
+				A98F472ABDB5B7AFBECB3D79 /* main.swift */,
+				9688FD1A7FFDEC385D6980FE /* Info.plist */,
+			);
+			name = Divvy2SpikeHelper;
+			path = Divvy2SpikeHelper;
+			sourceTree = SOURCE_ROOT;
 		};
 		9818E00E28B5922A004AA524 /* CompoundSnapArea */ = {
 			isa = PBXGroup;
@@ -495,6 +526,7 @@
 			isa = PBXGroup;
 			children = (
 				9821405D22B3ED3600ABFB3F /* ServiceManagement.framework */,
+				E6D0D7CF135A9DB733A28C7C /* OS X */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -667,6 +699,7 @@
 				9821403D22B3EBD900ABFB3F /* RectangleLauncher */,
 				9824700A22AF9B7D0037B409 /* Products */,
 				9821405C22B3ED3600ABFB3F /* Frameworks */,
+				8F5BC53C9BD6D50452D7F9EA /* Divvy2SpikeHelper */,
 			);
 			sourceTree = "<group>";
 		};
@@ -676,6 +709,7 @@
 				9824700922AF9B7D0037B409 /* Rectangle.app */,
 				9824701B22AF9B7E0037B409 /* RectangleTests.xctest */,
 				9821403C22B3EBD900ABFB3F /* RectangleLauncher.app */,
+				C91420EBE94CF1DCF32C1D55 /* Divvy2SpikeHelper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -789,9 +823,34 @@
 			path = TodoMode;
 			sourceTree = "<group>";
 		};
+		E6D0D7CF135A9DB733A28C7C /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				EF104BDB48AE421AEEF481CB /* Cocoa.framework */,
+			);
+			name = "OS X";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		661CD424D7D34F27CAC886FE /* Divvy2SpikeHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E81A21D2B25C57D1E546404 /* Build configuration list for PBXNativeTarget "Divvy2SpikeHelper" */;
+			buildPhases = (
+				54153D04F081FF46995805FC /* Sources */,
+				FA546F98B0EB6161EAD545C9 /* Frameworks */,
+				997641BBC0DCAF1B8FD581D2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Divvy2SpikeHelper;
+			productName = Divvy2SpikeHelper;
+			productReference = C91420EBE94CF1DCF32C1D55 /* Divvy2SpikeHelper.app */;
+			productType = "com.apple.product-type.application";
+		};
 		9821403B22B3EBD900ABFB3F /* RectangleLauncher */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9821405422B3EBDA00ABFB3F /* Build configuration list for PBXNativeTarget "RectangleLauncher" */;
@@ -821,6 +880,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				2DDD839062E03A1EC1D091B2 /* PBXTargetDependency */,
 			);
 			name = Rectangle;
 			packageProductDependencies = (
@@ -939,6 +999,7 @@
 				9824700822AF9B7D0037B409 /* Rectangle */,
 				9824701A22AF9B7E0037B409 /* RectangleTests */,
 				9821403B22B3EBD900ABFB3F /* RectangleLauncher */,
+				661CD424D7D34F27CAC886FE /* Divvy2SpikeHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -973,9 +1034,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		997641BBC0DCAF1B8FD581D2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		54153D04F081FF46995805FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				256DAA60E79B82DF2F9802BA /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9821403822B3EBD900ABFB3F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1173,6 +1249,12 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2DDD839062E03A1EC1D091B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Divvy2SpikeHelper;
+			target = 661CD424D7D34F27CAC886FE /* Divvy2SpikeHelper */;
+			targetProxy = 307BDFBB7A96D3611DB0F6B1 /* PBXContainerItemProxy */;
+		};
 		9824701D22AF9B7E0037B409 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9824700822AF9B7D0037B409 /* Rectangle */;
@@ -1202,6 +1284,29 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		5C056D3C198FA7EF7C3155A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Divvy2SpikeHelper/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.spikehelper;
+				PRODUCT_NAME = Divvy2SpikeHelper;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		9821405522B3EBDA00ABFB3F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1500,9 +1605,41 @@
 			};
 			name = Release;
 		};
+		EF89906D9C9741ED3ACD23C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Divvy2SpikeHelper/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.perg593.divvy2.spikehelper;
+				PRODUCT_NAME = Divvy2SpikeHelper;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6E81A21D2B25C57D1E546404 /* Build configuration list for PBXNativeTarget "Divvy2SpikeHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C056D3C198FA7EF7C3155A4 /* Release */,
+				EF89906D9C9741ED3ACD23C0 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		9821405422B3EBDA00ABFB3F /* Build configuration list for PBXNativeTarget "RectangleLauncher" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
