@@ -119,16 +119,16 @@ extension Defaults {
                 
                 guard isSafe else {
                     AlertUtil.oneButtonAlert(
-                        question: "Refused to load RectangleConfig.json",
-                        text: "The configuration file at \(path) is a symlink or world-writable. Rectangle has refused to load it. Remove the file or fix its permissions and try again."
+                        question: "Refused to load MovingVanConfig.json",
+                        text: "The configuration file at \(path) is a symlink or world-writable. Moving Van has refused to load it. Remove the file or fix its permissions and try again."
                     )
                     try? fm.removeItem(at: configURL)
                     return
                 }
                 
                 let response = AlertUtil.twoButtonAlert(
-                    question: "Apply Rectangle configuration?",
-                    text: "A configuration file was found at \(path). Applying it will overwrite your current Rectangle shortcuts and preferences. Apply now?",
+                    question: "Apply Moving Van configuration?",
+                    text: "A configuration file was found at \(path). Applying it will overwrite your current Moving Van shortcuts and preferences. Apply now?",
                     confirmText: "Apply",
                     cancelText: "Discard"
                 )
@@ -146,7 +146,7 @@ extension Defaults {
                     do {
                         try fm.removeItem(at: configURL)
                     } catch {
-                        AlertUtil.oneButtonAlert(question: "Error after loading from Support Dir", text: "Unable to rename/remove RectangleConfig.json from \(rectangleSupportURL) after loading.")
+                        AlertUtil.oneButtonAlert(question: "Error after loading from Support Dir", text: "Unable to rename/remove MovingVanConfig.json from \(rectangleSupportURL) after loading.")
                     }
                 }
             }

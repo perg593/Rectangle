@@ -636,8 +636,8 @@ extension AppDelegate {
                 }
                 let alert = NSAlert()
                 alert.alertStyle = .warning
-                alert.messageText = "Allow Rectangle URL action?".localized
-                alert.informativeText = String(format: "An external source asked Rectangle to perform \"%@\" on app bundle id \"%@\". Allow?".localized, action, bundleId)
+                alert.messageText = "Allow Moving Van URL action?".localized
+                alert.informativeText = String(format: "An external source asked Moving Van to perform \"%@\" on app bundle id \"%@\". Allow?".localized, action, bundleId)
                 alert.addButton(withTitle: "Allow".localized)
                 alert.addButton(withTitle: "Cancel".localized)
                 NSApp.activate(ignoringOtherApps: true)
