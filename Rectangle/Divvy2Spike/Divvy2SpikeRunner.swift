@@ -87,11 +87,24 @@ enum Divvy2SpikeRunner {
         let summary = "\nSPIKE RESULT: \(allPass ? "PASS" : "FAIL") (\(passed)/\(total))"
         report.note(summary)
 
+        // Robust output path: env override, else the (always-writable) home dir.
+        // Do NOT use currentDirectoryPath — an app launched via `open` has cwd "/".
         let outPath = ProcessInfo.processInfo.environment["DIVVY2_SPIKE_OUT"]
-            ?? FileManager.default.currentDirectoryPath + "/SPIKE.md"
-        let text = output.joined(separator: "\n") + "\n"
-        try? text.write(toFile: outPath, atomically: true, encoding: .utf8)
+            ?? (NSHomeDirectory() as NSString).appendingPathComponent("divvy2-SPIKE.md")
+        // Use report.lines (now incl. the summary just noted), not the pre-summary snapshot.
+        _ = output
+        let text = report.lines.joined(separator: "\n") + "\n"
+        var writeError = "ok"
+        do { try text.write(toFile: outPath, atomically: true, encoding: .utf8) }
+        catch { writeError = "\(error)" }
 
+        // Reliable side channel: NSLog goes to the unified log even when launched
+        // via `open` (where stderr is swallowed). Emit a per-check summary too.
+        NSLog("[divvy2-spike] %@", summary.trimmingCharacters(in: .whitespacesAndNewlines))
+        for r in report.checkResults {
+            NSLog("[divvy2-spike] %@: %@", r.name, r.notReady ? "NOT-READY" : (r.passed ? "PASS" : "FAIL"))
+        }
+        NSLog("[divvy2-spike] wrote %@ (write: %@)", outPath, writeError)
         FileHandle.standardError.write(Data((text + "\n[divvy2-spike] wrote \(outPath)\n").utf8))
         runCleanup()
         exit(allPass ? 0 : 1)
@@ -311,19 +324,25 @@ enum Divvy2SpikeRunner {
         let helperPID = helperApp.processIdentifier
         addCleanup { helperApp.forceTerminate() }
 
-        let frontmostIsHelper = waitUntil(timeout: 3) {
+        _ = waitUntil(timeout: 3) {
             NSWorkspace.shared.frontmostApplication?.processIdentifier == helperPID
         }
+        // Target the helper window BY PID (deterministic; never the user's frontmost window).
+        let appEl = AccessibilityElement(helperPID)
         let windowReady = waitUntil(timeout: 3) {
-            guard let el = AccessibilityElement.getFrontWindowElement() else { return false }
-            return !el.frame.isNull
+            guard let w = appEl.windowElements?.first else { return false }
+            return !w.frame.isNull
         }
-        guard frontmostIsHelper, windowReady, let windowEl = AccessibilityElement.getFrontWindowElement() else {
-            report.note("- [FAIL] helper window not acquirable (frontmost=\(frontmostIsHelper), windowReady=\(windowReady))")
+        guard windowReady,
+              let windowEl = appEl.windowElements?.first,
+              windowEl.isWindow == true, windowEl.pid == helperPID else {
+            report.note("- [FAIL] helper window not acquirable by PID (ready=\(windowReady))")
             record(report, name: "Check 4", passed: false, notReady: true)
             record(report, name: "Check 5", passed: false, notReady: true)
             return
         }
+        report.note("- [DIAG] helperPID=\(helperPID) windowEl.pid=\(windowEl.pid ?? -1) AXframeBefore=\(rectStr(windowEl.frame))")
+        report.note("- [DIAG] CGWindows(helper) before: \(dumpCGWindows(pid: helperPID))")
 
         // Target screen + raw visibleFrame (gap = 0).
         guard let screens = ScreenDetection().detectScreens(using: windowEl) else {
@@ -337,8 +356,11 @@ enum Divvy2SpikeRunner {
 
         func moveAndReadBack(_ norm: NormalizedRect) -> CGRect? {
             let appKit = norm.appKitRect(in: visible)
+            let expected = expectedAX(appKit, primaryMaxY)
             windowEl.setFrame(appKit.screenFlipped)
-            _ = waitUntil(timeout: 0.4) { _approxEqual(windowEl.frame, expectedAX(appKit, primaryMaxY), tol: 2) }
+            _ = waitUntil(timeout: 1.0) { _approxEqual(windowEl.frame, expected, tol: 2) }
+            // Let the window server catch up so CGWindowList reflects the move.
+            _ = waitUntil(timeout: 1.0) { (cgWindowBounds(pid: helperPID).map { _approxEqual($0, expected, tol: 2) }) ?? false }
             return windowEl.frame
         }
 
@@ -370,6 +392,8 @@ enum Divvy2SpikeRunner {
         ok5 = report.assert(topRead != nil && _approxEqual(topRead!, topExpected, tol: 2),
                             "top-half AX frame matches independent expected (primaryMaxY - maxY)") && ok5
         let topCG = cgWindowBounds(pid: helperPID)
+        report.note("- [DIAG] top-half: AXread=\(rectStr(topRead)) expectedAX=\(rectStr(topExpected)) CGbounds=\(rectStr(topCG)) visibleFrame=\(rectStr(visible)) primaryMaxY=\(Int(primaryMaxY))")
+        report.note("- [DIAG] CGWindows(helper) after top-move: \(dumpCGWindows(pid: helperPID))")
         ok5 = report.assert(topCG != nil && _approxEqual(topCG!, expectedTopLeft(topAppKit, primaryMaxY), tol: 2),
                             "top-half CGWindowList bounds (top-left global) match independent expected") && ok5
 
@@ -399,6 +423,21 @@ enum Divvy2SpikeRunner {
     private static func _approxEqual(_ a: CGRect, _ b: CGRect, tol: CGFloat) -> Bool {
         abs(a.origin.x - b.origin.x) <= tol && abs(a.origin.y - b.origin.y) <= tol
             && abs(a.width - b.width) <= tol && abs(a.height - b.height) <= tol
+    }
+    private static func rectStr(_ r: CGRect?) -> String {
+        guard let r = r, !r.isNull else { return "nil" }
+        return "(\(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height)))"
+    }
+    private static func dumpCGWindows(pid: pid_t) -> String {
+        guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else { return "nil" }
+        let mine = list.filter { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid }
+        if mine.isEmpty { return "(none)" }
+        return mine.map { info in
+            let layer = info[kCGWindowLayer as String] as? Int ?? -1
+            let title = info[kCGWindowName as String] as? String ?? ""
+            let b = (info[kCGWindowBounds as String] as? [String: Any]).flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) }
+            return "[layer=\(layer) bounds=\(rectStr(b)) title=\"\(title)\"]"
+        }.joined(separator: " ")
     }
     private static func cgWindowBounds(pid: pid_t) -> CGRect? {
         guard let infoList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
