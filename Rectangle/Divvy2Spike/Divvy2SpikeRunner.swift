@@ -278,6 +278,7 @@ enum Divvy2SpikeRunner {
         ok = report.assert(suppressedWhileDisabled, "custom chord suppressed while shortcuts disabled") && ok
         ok = report.assert(flagBack, "flag returned to its initial value after restore (reloadFromDefaults)") && ok
         ok = report.assert(firesWhenEnabled, "custom chord resumes once shortcuts re-enabled") && ok
+        report.note("- [NOTE] residual risk: a hard crash between disableApp and cleanup could leave the UNIQUE fake bundle id in Defaults.disabledApps (harmless — it matches no real app; restored on normal/atexit/signal exit).")
 
         record(report, name: "Check 3", passed: ok)
     }
@@ -366,7 +367,8 @@ enum Divvy2SpikeRunner {
 
         // --- Check 4: move + no history writes ---
         let beforeRestore = windowHistory.restoreRects
-        let beforeActions = Set(windowHistory.lastRectangleActions.keys)
+        // Compare full VALUES (not just keys) of lastRectangleActions via a stable projection.
+        let beforeActions = String(describing: windowHistory.lastRectangleActions)
         let full = NormalizedRect(x: 0.05, y: 0.05, w: 0.9, h: 0.9)
         let readBack1 = moveAndReadBack(full)
         let readBack2 = moveAndReadBack(full) // idempotency
@@ -376,8 +378,8 @@ enum Divvy2SpikeRunner {
         ok4 = report.assert(readBack1 != nil && readBack2 != nil && _approxEqual(readBack1!, readBack2!, tol: 2),
                             "repeated move is idempotent (no drift)") && ok4
         let historyUnchanged = (windowHistory.restoreRects == beforeRestore)
-            && (Set(windowHistory.lastRectangleActions.keys) == beforeActions)
-        ok4 = report.assert(historyUnchanged, "no writes to windowHistory.restoreRects / lastRectangleActions") && ok4
+            && (String(describing: windowHistory.lastRectangleActions) == beforeActions)
+        ok4 = report.assert(historyUnchanged, "no writes to windowHistory.restoreRects / lastRectangleActions (full value compare)") && ok4
         record(report, name: "Check 4", passed: ok4)
 
         // --- Check 5: coordinate contract with independent ground truth ---
@@ -464,13 +466,28 @@ enum Divvy2SpikeRunner {
         let dict = t.reverseTransformedValue(shortcut) as? [String: Any]
         let keyCodeVal = dict?["keyCode"] as? Int
         let modVal = dict?["modifierFlags"] as? UInt
-        ok = report.assert(dict != nil && keyCodeVal == shortcut.keyCode && modVal == shortcut.modifierFlags.rawValue,
-                           "MASDictionaryTransformer emits exact {keyCode, modifierFlags} dict") && ok
+        let dictKeys = Set((dict ?? [:]).keys)
+        ok = report.assert(dict != nil && dictKeys == ["keyCode", "modifierFlags"]
+                           && keyCodeVal == shortcut.keyCode && modVal == shortcut.modifierFlags.rawValue,
+                           "MASDictionaryTransformer emits EXACTLY {keyCode, modifierFlags} (\(dictKeys.sorted()))") && ok
         if let dict {
             let back = t.transformedValue(dict) as? MASShortcut
             ok = report.assert(back?.keyCode == shortcut.keyCode && back?.modifierFlags == shortcut.modifierFlags,
                                "transformedValue reproduces an equal MASShortcut") && ok
         }
+        // Recorder-emission proof: a REAL MASShortcutView bound to a temp key emits the same dict.
+        let recKey = "com.perg593.divvy2.spike.recorder." + UUID().uuidString
+        let view = MASShortcutView()
+        view.setAssociatedUserDefaultsKey(recKey, withTransformerName: MASDictionaryTransformerName)
+        view.shortcutValue = shortcut
+        _ = waitUntil(timeout: 0.5) { UserDefaults.standard.dictionary(forKey: recKey) != nil }
+        let emitted = UserDefaults.standard.dictionary(forKey: recKey)
+        let emittedKeys = Set((emitted ?? [:]).keys)
+        ok = report.assert(emitted != nil && emittedKeys == ["keyCode", "modifierFlags"]
+                           && (emitted?["keyCode"] as? Int) == shortcut.keyCode
+                           && (emitted?["modifierFlags"] as? UInt) == shortcut.modifierFlags.rawValue,
+                           "MASShortcutView recorder emits the SAME {keyCode, modifierFlags} dict to defaults") && ok
+        UserDefaults.standard.removeObject(forKey: recKey)
         // HotkeyData mirrors that dict and JSON round-trips.
         let hk = HotkeyData(shortcut)
         ok = report.assert(hk.keyCode == shortcut.keyCode && hk.modifierFlags == shortcut.modifierFlags.rawValue,
@@ -480,7 +497,7 @@ enum Divvy2SpikeRunner {
                                && decoded.toMASShortcut().modifierFlags == shortcut.modifierFlags,
                                "HotkeyData JSON round-trip preserves the chord (schemaVersion \(hk.schemaVersion))") && ok
         } else { ok = false }
-        report.note("- Canonical HotkeyData: `{ keyCode: Int, modifierFlags: UInt, schemaVersion: Int = 1 }`, persisted under `com.perg593.divvy2.customLayouts`. The recorder (MASShortcutView) serializes via the SAME MASDictionaryTransformer, so this dict IS the recorder's on-disk output.")
+        report.note("- Canonical HotkeyData: `{ keyCode: Int, modifierFlags: UInt, schemaVersion: Int = 1 }`, persisted under `com.perg593.divvy2.customLayouts`. Proven above that the real MASShortcutView recorder emits exactly this `{keyCode, modifierFlags}` dict — so HotkeyData is interchangeable with the recorder's on-disk output.")
         record(report, name: "Check 6", passed: ok)
     }
 
