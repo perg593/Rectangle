@@ -1,6 +1,6 @@
 # Design: M2 — CustomLayoutShortcutManager + apply path
 
-Status: **Proposed — rev 2** (addresses Codex round-1: 3 MAJOR on shared-monitor coexistence)
+Status: **Reviewed — rev 2, Codex VERDICT: GREEN** (2026-06-23; 2 MINOR folded into §2.2/§4.1)
 Date: 2026-06-23
 Branch: `feature/m0-fork-branding` (integration branch; M2 builds on M0/M0.5/M1)
 Parent: [`2026-06-23-Plan-Divvy2-Window-Snapper.md`](2026-06-23-Plan-Divvy2-Window-Snapper.md) §3.3–3.8/§5
@@ -74,11 +74,13 @@ All change handling funnels into ONE idempotent `reconcile()`, debounced to the 
    Rectangle's binder claims the freed chord on the now-clear monitor.
 4. Register each desired chord not already owned via `monitor.register`; on `false` →
    `monitorRegistrationFailed` (never assume success), and do NOT track it as owned.
-- **Loop-safety:** our registrations go through `MASShortcutMonitor` DIRECTLY (not the binder), so they
-  do NOT write UserDefaults and cannot retrigger `UserDefaults.didChangeNotification`. The single
-  `reloadFromDefaults()` re-claim writes defaults via Rectangle's binder, but the resulting reconcile
-  finds no NEW yield (the chord is already unowned) and does not call it again — bounded, like
-  Rectangle's own `isUpdatingShortcutBindings` guard.
+- **Loop-safety (C1#loop):** (a) `reloadFromDefaults()` runs SYNCHRONOUSLY and its `unbindShortcuts()`
+  sets Rectangle's `isUpdatingShortcutBindings` during the binder breaks (so Rectangle's own
+  `userDefaultsChanged` reentry is guarded); (b) OUR registrations go through `MASShortcutMonitor`
+  DIRECTLY (not the binder), so they never write UserDefaults and cannot retrigger
+  `UserDefaults.didChangeNotification`; (c) once the yielded chord is no longer owned, every
+  subsequent reconcile finds NO new WindowAction-yield, so `reloadFromDefaults()` is not called again.
+  The argument does NOT rely on whether Rectangle's binder happens to write defaults during reload.
 
 ### 2.3 Ownership rule (C1#ownership, spike-proven)
 Only chords we successfully registered are tracked as owned. Conflicting/failed chords are NEVER
@@ -135,6 +137,11 @@ demand), a fake `CustomLayoutWindowContext`, a fake/spy `rectangleShortcutManage
   still-free ones). Assert via the fake monitor call log.
 - **App-disable lifecycle:** set `ApplicationToggle.shortcutsDisabled` (via the real public
   `disableApp/enableApp`) + post `.frontAppChanged` → owned chords unregistered; re-enable → restored.
+- **Inactive-transition coexistence (C1#inactiveTransition):** custom owns X; go INACTIVE (post
+  `.shortcutRecording(true)` OR disable) so X is unregistered; while inactive, write a WindowAction
+  shortcut == X into `conflictDefaults`; then go ACTIVE again (`.shortcutRecording(false)` / enable).
+  Assert the manager does NOT re-take X (outcome `conflictWindowAction`, X unowned) — reconcile
+  recomputes desired from the CURRENT defaults before registering, so Rectangle keeps X.
 - **Apply computation:** trigger a layout → captured AppKit rect ==
   `layout.rect.pixelRect(in: fakeVisibleFrame)` (offset/secondary frame); repeated trigger idempotent.
 - **Fire-time belt-and-suspenders:** even if a chord were somehow registered while disabled, a fired
