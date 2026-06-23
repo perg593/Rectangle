@@ -1,7 +1,6 @@
 /// AppDelegate.swift
 
 import Cocoa
-import Sparkle
 import ServiceManagement
 import os.log
 
@@ -13,12 +12,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let accessibilityAuthorization = AccessibilityAuthorization()
     private let statusItem = RectangleStatusItem.instance
     static let windowHistory = WindowHistory()
-    var updaterController: SPUStandardUpdaterController!
-    var hasPendingUpdate = false {
-        didSet {
-            Notification.Name.updateAvailability.post()
-        }
-    }
 
     private var shortcutManager: ShortcutManager!
     private var windowManager: WindowManager!
@@ -76,12 +69,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotificationCenter.default.addObserver(self, selector: #selector(rebuildMenu), name: .showAdditionalSizesInMenuChanged, object: nil)
 
-        updaterController = SPUStandardUpdaterController(updaterDelegate: nil, userDriverDelegate: self)
-        
-        checkAutoCheckForUpdates()
-        
+        // Sparkle auto-update is disabled for this personal fork (no update feed).
+        updatesMenuItem.isHidden = true
+
         Notification.Name.configImported.onPost(using: { _ in
-            self.checkAutoCheckForUpdates()
             self.statusItem.refreshVisibility()
             self.applicationToggle.reloadFromDefaults()
             self.shortcutManager.reloadFromDefaults()
@@ -141,10 +132,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func checkAutoCheckForUpdates() {
-        updaterController.updater.automaticallyChecksForUpdates = Defaults.SUEnableAutomaticChecks.enabled
-    }
-    
     func accessibilityTrusted() {
         self.windowCalculationFactory = WindowCalculationFactory()
         self.windowManager = WindowManager()
@@ -280,7 +267,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @IBAction func checkForUpdates(_ sender: Any) {
-        updaterController.checkForUpdates(sender)
+        // No-op: auto-update is disabled in this fork (no Sparkle feed).
     }
     
     @IBAction func authorizeAccessibility(_ sender: Any) {
@@ -639,7 +626,7 @@ extension AppDelegate {
             
             func confirmExecuteTask(action: String, bundleId: String) -> Bool {
                 // Defense-in-depth: any web page or another app can trigger the
-                // `rectangle://execute-task=ignore-app` URL with an arbitrary
+                // `divvy2://execute-task=ignore-app` URL with an arbitrary
                 // bundle-id. Without confirmation this silently mutates
                 // Rectangle's `disabledApps` defaults. Skip the prompt only
                 // when Rectangle itself is frontmost (i.e. the user almost
@@ -688,24 +675,3 @@ extension AppDelegate {
     }
 }
 
-extension AppDelegate: SPUStandardUserDriverDelegate {
-    
-    var supportsGentleScheduledUpdateReminders: Bool {
-        true
-    }
-
-    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
-        if immediateFocus {
-            return true
-        }
-        
-        self.hasPendingUpdate = true
-        updatesMenuItem.title = "Update Available…".localized
-        return false
-    }
-    
-    func standardUserDriverWillFinishUpdateSession() {
-        self.hasPendingUpdate = false
-        updatesMenuItem.title = "Check for Updates…".localized(key: "HIK-3r-i7E.title")
-    }
-}

@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "9824700822AF9B7D0037B409"
-               BuildableName = "Rectangle.app"
+               BuildableName = "Moving Van.app"
                BlueprintName = "Rectangle"
                ReferencedContainer = "container:Rectangle.xcodeproj">
             </BuildableReference>

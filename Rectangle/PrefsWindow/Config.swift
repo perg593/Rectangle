@@ -90,9 +90,9 @@ extension Defaults {
     
     static func loadFromSupportDir() {
         if let rectangleSupportURL = getSupportDir()?
-            .appendingPathComponent("Rectangle", isDirectory: true) {
-            
-            let configURL = rectangleSupportURL.appendingPathComponent("RectangleConfig.json")
+            .appendingPathComponent("Moving Van", isDirectory: true) {
+
+            let configURL = rectangleSupportURL.appendingPathComponent("MovingVanConfig.json")
                         
             let exists = try? configURL.checkResourceIsReachable()
             if exists == true {
@@ -139,7 +139,7 @@ extension Defaults {
                 
                 load(fileUrl: configURL)
                 do {
-                    let newFilename = "RectangleConfig\(timestamp()).json"
+                    let newFilename = "MovingVanConfig\(timestamp()).json"
                     
                     try fm.moveItem(atPath: configURL.path, toPath: rectangleSupportURL.appendingPathComponent(newFilename).path)
                 } catch {

@@ -25,7 +25,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>rectangle</string>
+				<string>divvy2</string>
 			</array>
 		</dict>
 	</array>
