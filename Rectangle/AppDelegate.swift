@@ -21,6 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var titleBarManager: TitleBarManager!
     private var customLayoutStore: CustomLayoutStore!
     private var customLayoutShortcutManager: CustomLayoutShortcutManager!
+    private var customLayoutsWindowController: CustomLayoutsWindowController?
     
     private var prefsWindowController: NSWindowController?
     
@@ -151,6 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             store: customLayoutStore,
             reclaim: { [weak shortcutManager] in shortcutManager?.reloadFromDefaults() })
         self.customLayoutShortcutManager.start()
+        addCustomLayoutsMenuItem()
 
         // M0.5 architecture spike: only when explicitly requested via launch arg.
         // Runs here (not in applicationDidFinishLaunching) so applicationToggle is non-nil.
@@ -289,6 +291,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @IBAction func authorizeAccessibility(_ sender: Any) {
         accessibilityAuthorization.showAuthorizationWindow()
+    }
+
+    private func addCustomLayoutsMenuItem() {
+        guard let menu = mainStatusMenu,
+              !menu.items.contains(where: { $0.action == #selector(openCustomLayouts) }) else { return }
+        let item = NSMenuItem(title: "Custom Layouts…", action: #selector(openCustomLayouts), keyEquivalent: "")
+        item.target = self
+        if let prefIndex = menu.items.firstIndex(where: { $0.action == #selector(openPreferences) }) {
+            menu.insertItem(item, at: prefIndex + 1)
+        } else {
+            menu.insertItem(item, at: 0)
+        }
+    }
+
+    @objc func openCustomLayouts(_ sender: Any) {
+        guard customLayoutStore != nil, customLayoutShortcutManager != nil else { return }
+        if customLayoutsWindowController == nil {
+            customLayoutsWindowController = CustomLayoutsWindowController(
+                store: customLayoutStore, manager: customLayoutShortcutManager)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        customLayoutsWindowController?.showWindow(self)
     }
 
     private func checkLaunchOnLogin() {

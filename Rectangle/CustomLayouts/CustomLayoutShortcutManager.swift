@@ -9,6 +9,11 @@
 import Cocoa
 import MASShortcut
 
+extension Notification.Name {
+    /// Posted after each reconcile so the M3 UI can refresh per-layout binding status.
+    static let customLayoutBindingsReconciled = Notification.Name("com.perg593.divvy2.customLayoutBindingsReconciled")
+}
+
 // MARK: - Injectable seams (so unit tests don't touch the real monitor / move real windows)
 
 protocol ShortcutMonitoring {
@@ -147,24 +152,24 @@ final class CustomLayoutShortcutManager {
 
         let active = !suspendedForRecording && !isShortcutsDisabled()
 
-        // Current WindowAction shortcuts (Rectangle has priority).
-        var waNameByIdentity = [ShortcutCycle.ShortcutIdentity: String]()
-        for (action, shortcut) in ShortcutCycle.shortcutsByAction(userDefaults: conflictDefaults) {
-            waNameByIdentity[ShortcutCycle.ShortcutIdentity(shortcut)] = action.name
-        }
-
         // Desired registrations + outcome for EVERY layout (store order, first-wins for dups).
+        // Uses the SAME conflict primitives as the M3 validator (CustomLayoutConflict) so the
+        // record-time and reconcile-time classifications can't diverge.
         var desired = [UUID: MASShortcut]()
         var newOutcomes = [UUID: BindOutcome]()
-        var keptIdByIdentity = [ShortcutCycle.ShortcutIdentity: UUID]()
+        var keptLayouts = [CustomLayout]()
         for layout in store.layouts {
             guard let hotkey = layout.hotkey else { newOutcomes[layout.id] = .noHotkey; continue }
             let shortcut = hotkey.toMASShortcut()
-            let identity = ShortcutCycle.ShortcutIdentity(shortcut)
             if !active { newOutcomes[layout.id] = .suppressed; continue }
-            if let name = waNameByIdentity[identity] { newOutcomes[layout.id] = .conflictWindowAction(name); continue }
-            if let firstId = keptIdByIdentity[identity] { newOutcomes[layout.id] = .conflictCustomLayout(firstId); continue }
-            keptIdByIdentity[identity] = layout.id
+            if let name = CustomLayoutConflict.windowActionName(for: shortcut, in: conflictDefaults) {
+                newOutcomes[layout.id] = .conflictWindowAction(name); continue
+            }
+            // First-wins: only layouts KEPT so far this pass can be a prior duplicate.
+            if let firstId = CustomLayoutConflict.customLayoutId(for: shortcut, in: keptLayouts) {
+                newOutcomes[layout.id] = .conflictCustomLayout(firstId); continue
+            }
+            keptLayouts.append(layout)
             desired[layout.id] = shortcut
         }
 
@@ -175,7 +180,9 @@ final class CustomLayoutShortcutManager {
             if !stillWanted {
                 monitor.unregisterChord(shortcut)
                 owned[id] = nil
-                if waNameByIdentity[ShortcutCycle.ShortcutIdentity(shortcut)] != nil { yieldedDueToWindowAction = true }
+                if CustomLayoutConflict.windowActionName(for: shortcut, in: conflictDefaults) != nil {
+                    yieldedDueToWindowAction = true
+                }
             }
         }
         // Let Rectangle reclaim a chord we just freed because a WindowAction took it.
@@ -190,6 +197,7 @@ final class CustomLayoutShortcutManager {
         }
 
         outcomes = newOutcomes
+        NotificationCenter.default.post(name: .customLayoutBindingsReconciled, object: nil)
     }
 
     private func sameChord(_ a: MASShortcut, _ b: MASShortcut) -> Bool {
