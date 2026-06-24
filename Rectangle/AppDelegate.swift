@@ -19,6 +19,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowCalculationFactory: WindowCalculationFactory!
     private var snappingManager: SnappingManager!
     private var titleBarManager: TitleBarManager!
+    private var customLayoutStore: CustomLayoutStore!
+    private var customLayoutShortcutManager: CustomLayoutShortcutManager!
     
     private var prefsWindowController: NSWindowController?
     
@@ -143,10 +145,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         checkForProblematicApps()
         MacTilingDefaults.checkForBuiltInTiling(skipIfAlreadyNotified: true)
 
+        // Divvy-2 parallel custom-layout subsystem (M1 store + M2 shortcut manager).
+        self.customLayoutStore = CustomLayoutStore()
+        self.customLayoutShortcutManager = CustomLayoutShortcutManager(
+            store: customLayoutStore,
+            reclaim: { [weak shortcutManager] in shortcutManager?.reloadFromDefaults() })
+        self.customLayoutShortcutManager.start()
+
         // M0.5 architecture spike: only when explicitly requested via launch arg.
         // Runs here (not in applicationDidFinishLaunching) so applicationToggle is non-nil.
         if CommandLine.arguments.contains("--divvy2-spike") {
-            Divvy2SpikeRunner.run(applicationToggle: applicationToggle, windowHistory: AppDelegate.windowHistory)
+            Divvy2SpikeRunner.run(applicationToggle: applicationToggle,
+                                  windowHistory: AppDelegate.windowHistory,
+                                  rectangleShortcutManager: shortcutManager)
         }
     }
     
