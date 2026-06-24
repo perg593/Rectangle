@@ -1,6 +1,6 @@
 # Design: M3 — Custom Layouts Preferences UI
 
-Status: **Proposed** (awaiting adversarial Codex review before implementation)
+Status: **Proposed — rev 2** (addresses Codex round-1: 3 MAJOR validator/helper)
 Date: 2026-06-23
 Branch: `feature/m0-fork-branding` (integration branch; M3 builds on M0/M0.5/M1/M2)
 Parent: [`2026-06-23-Plan-Divvy2-Window-Snapper.md`](2026-06-23-Plan-Divvy2-Window-Snapper.md) §5 (M3)
@@ -50,20 +50,39 @@ A vertical layout:
   (a newer app wrote the data) — mutators would no-op anyway.
 
 ## 4. Record-time conflict rejection — `CustomLayoutShortcutValidator: MASShortcutValidator`
-Override `isShortcutValid(_:)` to REJECT (return false) a chord that conflicts, mirroring Rectangle's
-own validator usage. Conflict = the chord's `ShortcutCycle.ShortcutIdentity` matches (a) any live
-`WindowAction` shortcut, or (b) another custom layout (excluding the row being edited). The check uses a
-**shared helper** also used by the M2 manager so the two cannot diverge:
+`CustomLayoutShortcutValidator.isShortcutValid(_:)` mirrors Rectangle's own validator
+(`TodoShortcutValidator`): **call `super.isShortcutValid(shortcut)` FIRST** (so MASShortcut's base rules
+— no-modifier/non-function keys, restricted option-only chords — still reject), THEN also reject on a
+custom-layout conflict:
 ```
-enum CustomLayoutConflict { 
-  static func find(_ shortcut: MASShortcut, excluding id: UUID?, layouts: [CustomLayout],
-                   conflictDefaults: UserDefaults) -> CustomLayoutShortcutManager.BindOutcome?
+override func isShortcutValid(_ s: MASShortcut!) -> Bool {
+  guard super.isShortcutValid(s) else { return false }
+  return CustomLayoutConflict.windowActionName(for: s, in: conflictDefaults) == nil
+      && CustomLayoutConflict.customLayoutId(for: s, in: otherLayouts()) == nil   // otherLayouts excludes the edited row
 }
 ```
-(M2's `reconcile()` is refactored to call this helper for its WindowAction/custom-dup classification — a
-behavior-preserving extraction, re-verified by the existing M2 unit tests + spike Check 9.) The validator
-shows the standard MASShortcut "already in use" feedback; record-time rejection is the primary UX, the
-status label (§5) is the backstop for the residual `monitorRegistrationFailed`.
+**Rejection is QUIET (a beep), like `TodoShortcutValidator`** — in this MASShortcut version returning
+`false` from `isShortcutValid` only beeps; the alert/explanation path is the separate
+`isShortcutAlreadyTaken(bySystem:explanation:)`, which we do NOT use for custom conflicts. The *human*
+explanation ("Conflicts with Left Half / <layout>") is the per-row **Status label** (§5), not a recorder
+alert. (The §2 hotkey row text is corrected accordingly — no "standard already-in-use" alert claim.)
+
+**Two DISTINCT conflict queries (C1#splitHelper) — do NOT share one `excluding:` helper:**
+```
+enum CustomLayoutConflict {
+  /// Identity matches a live WindowAction shortcut → its action name.
+  static func windowActionName(for s: MASShortcut, in conflictDefaults: UserDefaults) -> String?
+  /// Identity matches a layout in the GIVEN list → its id (first match in list order).
+  static func customLayoutId(for s: MASShortcut, in layouts: [CustomLayout]) -> UUID?
+}
+```
+- **Validator** (record-time): rejects if the chord matches a WindowAction OR ANY OTHER layout
+  (`otherLayouts()` = all layouts except the edited id).
+- **Manager** (reconcile-time, FIRST-WINS): keeps the first layout for a chord and only rejects LATER
+  duplicates. M2's `reconcile()` is refactored to use `windowActionName(...)` for the (shared, identical)
+  WindowAction check and `customLayoutId(for:, in: <layouts kept so far this pass>)` for the dup check —
+  preserving the existing `keptIdByIdentity` store-order semantics. Behavior-preserving; re-verified by
+  the M2 unit tests (incl. the first-registered/second-conflict dup test) + spike Check 9.
 
 ## 5. Surfacing binding outcomes (additive M2 change)
 `CustomLayoutShortcutManager` posts a new `Notification.Name.customLayoutBindingsReconciled` at the END
@@ -82,13 +101,19 @@ UI rendering is verified by the **manual run smoke test** (open window → add �
 snap a window). The non-UI logic is extracted and UNIT-tested (`RectangleTests/CustomLayoutUITests.swift`,
 isolated suites):
 - **Percent ⇄ NormalizedRect** round-trip + rejection of out-of-range/invalid percents.
-- **`CustomLayoutConflict.find`**: WindowAction match → `.conflictWindowAction(name)`; another custom
-  layout (excluding self) → `.conflictCustomLayout(id)`; editing the SAME row's own chord → no conflict;
-  free chord → nil. (Also assert the M2 manager still produces identical outcomes after the refactor.)
+- **`CustomLayoutConflict.windowActionName`**: a chord equal to a live WindowAction shortcut → that
+  action's name; a free chord → nil.
+- **`CustomLayoutConflict.customLayoutId`**: returns the FIRST layout in the given list whose chord
+  matches (and nil if none) — the primitive used by both call sites with different lists.
+- **M2 refactor is behavior-preserving:** two layouts with the SAME chord still yield `.registered` for
+  the first and `.conflictCustomLayout(first.id)` for the second (the existing M2 dup test), and the
+  WindowAction-conflict + dynamic-yield tests + spike Check 9 still pass.
 - **Default new layout** (`+ Add`) is valid (`isValid`, unique id, sensible default rect, no hotkey) and
   persists via the store.
 - **Outcome → status string** mapping (each `BindOutcome` → its label).
-- **Validator** wraps `CustomLayoutConflict.find` and returns false exactly when a conflict exists.
+- **Validator**: returns FALSE when (a) `super.isShortcutValid` is false (base-invalid chord still
+  rejected), (b) the chord matches a WindowAction, or (c) it matches ANY OTHER layout; returns TRUE for a
+  base-valid, non-conflicting chord, AND for re-recording the edited row's OWN current chord (excluded).
 
 ## 8. Risks / open questions
 - **R-m3-1 MASShortcutView manual mode.** We use `shortcutValue` + `shortcutValueChange` (NOT
