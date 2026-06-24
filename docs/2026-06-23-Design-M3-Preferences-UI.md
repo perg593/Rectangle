@@ -1,6 +1,6 @@
 # Design: M3 — Custom Layouts Preferences UI
 
-Status: **Proposed — rev 2** (addresses Codex round-1: 3 MAJOR validator/helper)
+Status: **Reviewed — rev 2, Codex VERDICT: GREEN** (2026-06-23)
 Date: 2026-06-23
 Branch: `feature/m0-fork-branding` (integration branch; M3 builds on M0/M0.5/M1/M2)
 Parent: [`2026-06-23-Plan-Divvy2-Window-Snapper.md`](2026-06-23-Plan-Divvy2-Window-Snapper.md) §5 (M3)
@@ -124,7 +124,7 @@ isolated suites):
   (not the row index) so reloads/reorders can't mis-route edits.
 - **R-m3-3 Validator currency.** The validator reads the CURRENT store + WindowAction defaults at record
   time (not a stale snapshot), so it reflects live conflicts.
-- **R-m3-4 Refactor safety.** Extracting `CustomLayoutConflict.find` from M2's reconcile is
+- **R-m3-4 Refactor safety.** Extracting `CustomLayoutConflict.windowActionName`/`customLayoutId` from M2's reconcile is
   behavior-preserving; the M2 unit tests + spike Check 9 must still pass (re-run both).
 - **R-m3-5 No new TCC/AX needs.** The window is ordinary AppKit; no new permissions. The app stays a
   menu-bar `LSUIElement` app; opening a window via `NSApp.activate` is fine.
