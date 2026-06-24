@@ -602,10 +602,14 @@ enum Divvy2SpikeRunner {
         // conflict and reclaims the chord. Snapshot/restore the touched WindowAction key.
         let std = UserDefaults.standard
         let leftHalfKey = WindowAction.leftHalf.name
-        let savedLeftHalf = std.dictionary(forKey: leftHalfKey)
+        // Snapshot the PERSISTENT (on-disk) override, NOT the effective value — otherwise a
+        // key that was merely inherited from registered defaults would get written back as a
+        // persistent user value on restore, mutating real prefs.
+        let domain = Bundle.main.bundleIdentifier ?? "com.perg593.divvy2"
+        let savedLeftHalf = std.persistentDomain(forName: domain)?[leftHalfKey]
         addCleanup {
             if let saved = savedLeftHalf { std.set(saved, forKey: leftHalfKey) }
-            else { std.removeObject(forKey: leftHalfKey) }
+            else { std.removeObject(forKey: leftHalfKey) }   // revert to inherited default
             rectMgr.reloadFromDefaults()   // restore Rectangle to its original bindings
         }
 
