@@ -532,11 +532,12 @@ enum Divvy2SpikeRunner {
         report.section("Check 8 — production CustomLayoutShortcutManager apply + no history")
         let helperURL = Bundle.main.bundleURL.deletingLastPathComponent()
             .appendingPathComponent("Divvy2SpikeHelper.app")
-        guard FileManager.default.fileExists(atPath: helperURL.path),
-              NSRunningApplication.runningApplications(withBundleIdentifier: "com.perg593.divvy2.spikehelper").isEmpty else {
-            report.note("- [SKIP] helper unavailable or already running")
+        guard FileManager.default.fileExists(atPath: helperURL.path) else {
+            report.note("- [SKIP] helper app not built")
             record(report, name: "Check 8", passed: false, notReady: true); return
         }
+        // Our own disposable helper: a fresh instance is launched and targeted by its
+        // PID, so it's fine if Check 4/5's instance is still alive (terminated at end).
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true; config.createsNewApplicationInstance = true
         var launched: NSRunningApplication?
