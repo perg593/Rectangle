@@ -82,6 +82,7 @@ final class CustomLayoutShortcutManager {
     private var suspendedForRecording = false
     private var isReconciling = false
     private var reconcileScheduled = false
+    private var isStopped = false
     private var observers: [NSObjectProtocol] = []
 
     init(store: CustomLayoutStore,
@@ -115,6 +116,7 @@ final class CustomLayoutShortcutManager {
     }
 
     func stop() {
+        isStopped = true   // a pending debounced reconcile must not re-register after teardown
         for o in observers { NotificationCenter.default.removeObserver(o) }
         observers.removeAll()
         for (_, shortcut) in owned { monitor.unregisterChord(shortcut) }
@@ -131,14 +133,15 @@ final class CustomLayoutShortcutManager {
         guard !reconcileScheduled else { return }
         reconcileScheduled = true
         DispatchQueue.main.async { [weak self] in
-            self?.reconcileScheduled = false
-            self?.reconcileNow()
+            guard let self, !self.isStopped else { return }
+            self.reconcileScheduled = false
+            self.reconcileNow()
         }
     }
 
     /// Synchronous reconcile (used by start() and tests). The single source of truth.
     func reconcileNow() {
-        guard !isReconciling else { return }
+        guard !isStopped, !isReconciling else { return }
         isReconciling = true
         defer { isReconciling = false }
 

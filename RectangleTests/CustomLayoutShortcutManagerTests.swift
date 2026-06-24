@@ -243,4 +243,18 @@ final class CustomLayoutShortcutManagerTests: XCTestCase {
         XCTAssertEqual(mgr.outcomes[a.id], .registered)
         XCTAssertTrue(monitor.isOwned(a.hotkey!.toMASShortcut()))
     }
+
+    func testStopCancelsPendingDebouncedReconcile() {
+        let store = CustomLayoutStore(userDefaults: defaults)
+        let mgr = makeManager(store: store)
+        mgr.start()
+        let a = layout("a", chord(96))
+        store.add(a)        // posts .customLayoutsChanged → schedules an async reconcile
+        mgr.stop()          // teardown BEFORE the debounce fires
+        let exp = expectation(description: "pump")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+        XCTAssertFalse(monitor.isOwned(a.hotkey!.toMASShortcut()),
+                       "a pending debounced reconcile must not re-register after stop()")
+    }
 }

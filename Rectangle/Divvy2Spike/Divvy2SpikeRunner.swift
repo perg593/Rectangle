@@ -593,7 +593,22 @@ enum Divvy2SpikeRunner {
     // MARK: - Check 9: shared-monitor coexistence (custom yields to WindowAction)
 
     private static func check9SharedMonitorCoexistence(_ report: Report, rectangleShortcutManager: ShortcutManager?) {
-        report.section("Check 9 — shared-monitor coexistence (custom yields to WindowAction)")
+        report.section("Check 9 — shared-monitor coexistence (REAL Rectangle reclaim)")
+        guard let rectMgr = rectangleShortcutManager else {
+            report.note("- [SKIP] no rectangleShortcutManager available")
+            record(report, name: "Check 9", passed: false, notReady: true); return
+        }
+        // Use the REAL standard defaults Rectangle reads, so its binder actually sees the
+        // conflict and reclaims the chord. Snapshot/restore the touched WindowAction key.
+        let std = UserDefaults.standard
+        let leftHalfKey = WindowAction.leftHalf.name
+        let savedLeftHalf = std.dictionary(forKey: leftHalfKey)
+        addCleanup {
+            if let saved = savedLeftHalf { std.set(saved, forKey: leftHalfKey) }
+            else { std.removeObject(forKey: leftHalfKey) }
+            rectMgr.reloadFromDefaults()   // restore Rectangle to its original bindings
+        }
+
         let suiteName = "com.perg593.divvy2.spike.c9"
         let suite = UserDefaults(suiteName: suiteName)!
         suite.removePersistentDomain(forName: suiteName)
@@ -601,13 +616,14 @@ enum Divvy2SpikeRunner {
 
         let store = CustomLayoutStore(userDefaults: suite)
         let idX = UUID(), idY = UUID()
-        let chordX = mas(101, [.command, .control, .option])   // novel
-        let chordY = mas(103, [.command, .control, .option])   // novel
+        let chordX = mas(101, [.command, .control, .option])   // novel (unlikely a real shortcut)
+        let chordY = mas(103, [.command, .control, .option])
         store.add(CustomLayout(id: idX, name: "X", rect: NormalizedRect(x: 0, y: 0, w: 0.5, h: 1), hotkey: HotkeyData(chordX)))
         store.add(CustomLayout(id: idY, name: "Y", rect: NormalizedRect(x: 0.5, y: 0, w: 0.5, h: 1), hotkey: HotkeyData(chordY)))
+        // conflictDefaults = the REAL standard defaults, and reclaim drives the REAL Rectangle manager.
         let mgr = CustomLayoutShortcutManager(store: store,
-                                              reclaim: { rectangleShortcutManager?.reloadFromDefaults() },
-                                              conflictDefaults: suite, monitor: MASShortcutMonitor.shared())
+                                              reclaim: { rectMgr.reloadFromDefaults() },
+                                              conflictDefaults: std, monitor: MASShortcutMonitor.shared())
         addCleanup { mgr.stop() }
 
         var ok = true
@@ -615,16 +631,17 @@ enum Divvy2SpikeRunner {
         ok = report.assert(mgr.outcomes[idX] == .registered && mgr.outcomes[idY] == .registered,
                            "both novel custom chords registered on the real shared monitor") && ok
 
-        // A WindowAction now takes chord X (inject into the manager's conflict defaults).
-        inject(chordX, forAction: .leftHalf, into: suite)
-        mgr.reconcileNow()
+        // A real WindowAction (leftHalf) now takes chord X in standard defaults.
+        inject(chordX, forAction: .leftHalf, into: std)
+        mgr.reconcileNow()   // yields X (conflictWindowAction) + reclaim → Rectangle binds chordX→leftHalf
         ok = report.assert(mgr.outcomes[idX] == .conflictWindowAction(WindowAction.leftHalf.name),
-                           "custom yields chord X to the WindowAction (conflictWindowAction)") && ok
+                           "custom yields chord X to the WindowAction") && ok
         ok = report.assert(mgr.outcomes[idY] == .registered, "non-conflicting custom chord Y stays owned") && ok
-        // X must now be FREE on the real monitor — prove it by registering a stand-in (as Rectangle would).
-        let standInOK = MASShortcutMonitor.shared().register(chordX) { }
-        addCleanup { MASShortcutMonitor.shared().unregisterShortcut(chordX) }
-        ok = report.assert(standInOK, "chord X is free on the shared monitor after the yield (Rectangle could bind it)") && ok
+        // Real coexistence proof: chord X is now owned by RECTANGLE, so a fresh register must FAIL.
+        let secondRegister = MASShortcutMonitor.shared().register(chordX) { }
+        if secondRegister { MASShortcutMonitor.shared().unregisterShortcut(chordX) } // unexpected: clean up
+        ok = report.assert(!secondRegister,
+                           "after yield + reclaim, Rectangle owns chord X (a second register fails)") && ok
         record(report, name: "Check 9", passed: ok)
     }
 }
