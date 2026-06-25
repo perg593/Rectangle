@@ -19,6 +19,8 @@ final class CustomLayoutsWindowController: NSWindowController {
     private let bannerLabel = NSTextField(labelWithString: "")
     private var rowViews: [CustomLayoutRowView] = []
     private var observers: [NSObjectProtocol] = []
+    /// Set by `addLayout`; consumed by the next `rebuildRows` to focus + reveal the new row.
+    private var pendingFocusLayoutId: UUID?
 
     init(store: CustomLayoutStore, manager: CustomLayoutShortcutManager, conflictDefaults: UserDefaults = .standard) {
         self.store = store
@@ -67,12 +69,18 @@ final class CustomLayoutsWindowController: NSWindowController {
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        let doc = NSView()
+        // FLIPPED document view: a non-flipped doc bottom-anchors content when it's shorter
+        // than the clip view, which hid newly added rows (they piled up off the top). Flipped =
+        // top-down, so rows lay out from the top and the list grows/scrolls downward normally.
+        let doc = FlippedView()
         doc.translatesAutoresizingMaskIntoConstraints = false
         doc.addSubview(rowsStack)
-        doc.addSubview(emptyLabel)
-        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        // The empty-state label lives INSIDE the stack so the document view's height always
+        // tracks its content (an arranged subview), which is what makes newly added rows lay
+        // out and scroll. NSStackView collapses hidden arranged subviews, so toggling
+        // `emptyLabel.isHidden` swaps cleanly between the empty state and the rows.
         emptyLabel.textColor = .secondaryLabelColor
+        rowsStack.addArrangedSubview(emptyLabel)
         scroll.documentView = doc
 
         content.addSubview(toolbar)
@@ -95,9 +103,8 @@ final class CustomLayoutsWindowController: NSWindowController {
             rowsStack.topAnchor.constraint(equalTo: doc.topAnchor, constant: 4),
             rowsStack.leadingAnchor.constraint(equalTo: doc.leadingAnchor, constant: 4),
             rowsStack.trailingAnchor.constraint(equalTo: doc.trailingAnchor, constant: -4),
-            rowsStack.bottomAnchor.constraint(lessThanOrEqualTo: doc.bottomAnchor, constant: -4),
-            emptyLabel.topAnchor.constraint(equalTo: doc.topAnchor, constant: 16),
-            emptyLabel.leadingAnchor.constraint(equalTo: doc.leadingAnchor, constant: 8),
+            // `==` (not `<=`) so the document view is exactly as tall as its rows → scrollable.
+            rowsStack.bottomAnchor.constraint(equalTo: doc.bottomAnchor, constant: -4),
         ])
     }
 
@@ -118,6 +125,21 @@ final class CustomLayoutsWindowController: NSWindowController {
         }
         emptyLabel.isHidden = !store.layouts.isEmpty
         refreshStatuses()
+
+        // Reveal a just-added row so "+ Add Layout" has a visible effect. Defer one tick and
+        // force a layout pass first: the freshly created row has no real frame yet, so scrolling
+        // to its bounds now would be unreliable for a row added below the fold. We deliberately
+        // do NOT make the name field first responder here — an actively-edited field swallows
+        // the next "+ Add Layout" click (the click just commits the field instead of adding),
+        // which is the very "Add does nothing" symptom we're fixing.
+        if let focusId = pendingFocusLayoutId {
+            pendingFocusLayoutId = nil
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let row = self.rowViews.first(where: { $0.layoutId == focusId }) else { return }
+                self.window?.contentView?.layoutSubtreeIfNeeded()
+                row.scrollToVisible(row.bounds)
+            }
+        }
     }
 
     private func storeChanged() {
@@ -139,7 +161,9 @@ final class CustomLayoutsWindowController: NSWindowController {
 
     @objc private func addLayout() {
         guard !store.isReadOnlyFutureSchema else { NSSound.beep(); return }
-        store.add(CustomLayout(name: "New Layout", rect: NormalizedRect(x: 0, y: 0, w: 0.5, h: 1)))
+        let layout = CustomLayout(name: "New Layout", rect: NormalizedRect(x: 0, y: 0, w: 0.5, h: 0.5))
+        pendingFocusLayoutId = layout.id   // consumed by rebuildRows after .customLayoutsChanged
+        store.add(layout)
     }
 
     @objc private func exportLayouts() {
@@ -194,6 +218,13 @@ final class CustomLayoutRowView: NSView, NSTextFieldDelegate {
     private let shortcutView = MASShortcutView()
     private let statusLabel = NSTextField(labelWithString: "")
     private var isPopulating = false
+    // Observes this row's recorder and posts `.shortcutRecording` so the shortcut manager
+    // suspends global custom-layout hotkeys WHILE recording. Without this, an already-bound
+    // chord (e.g. another layout's hotkey) is intercepted by its global hotkey instead of
+    // being captured here — so it can't be recorded and its conflict alert never fires. Only
+    // one recorder is active at a time, so a per-row observer is sufficient.
+    private let recordingObserver = ShortcutRecordingObserver()
+    private var isShowingConflictAlert = false
 
     init(layoutId: UUID, store: CustomLayoutStore, conflictDefaults: UserDefaults,
          allLayouts: @escaping () -> [CustomLayout], editable: Bool) {
@@ -216,11 +247,32 @@ final class CustomLayoutRowView: NSView, NSTextFieldDelegate {
         nameField.isEditable = editable
         nameField.widthAnchor.constraint(equalToConstant: 130).isActive = true
 
-        shortcutView.shortcutValidator = CustomLayoutShortcutValidator(
+        let validator = CustomLayoutShortcutValidator(
             conflictDefaults: conflictDefaults,
             otherLayouts: { [layoutId, allLayouts] in allLayouts().filter { $0.id != layoutId } })
+        validator.onConflict = { [weak self] name in
+            // Dispatch async: this fires from inside the recorder's event handling, so present
+            // the alert after the validator returns (avoids reentrancy with the field editor).
+            // `isShortcutValid` may be invoked several times for one chord, so guard against
+            // stacking duplicate sheets (an AppKit hazard when a sheet is already attached).
+            DispatchQueue.main.async {
+                guard let self, !self.isShowingConflictAlert else { return }
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Shortcut already in use"
+                alert.informativeText = "That shortcut is already assigned to “\(name)”. Pick a different combination."
+                if let window = self.window, window.attachedSheet == nil {
+                    self.isShowingConflictAlert = true
+                    alert.beginSheetModal(for: window) { [weak self] _ in self?.isShowingConflictAlert = false }
+                } else if self.window == nil {
+                    alert.runModal()
+                }
+            }
+        }
+        shortcutView.shortcutValidator = validator
         shortcutView.isEnabled = editable
         shortcutView.widthAnchor.constraint(equalToConstant: 120).isActive = true
+        recordingObserver.observe([shortcutView])   // suspend global hotkeys while recording
 
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 130).isActive = true
@@ -253,6 +305,13 @@ final class CustomLayoutRowView: NSView, NSTextFieldDelegate {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        // If this row is removed while its recorder is active (delete/rebuild during
+        // recording), stop recording so MASShortcut tears down its event monitor and the
+        // observer posts the "recording ended" resume before everything deallocates.
+        if shortcutView.isRecording { shortcutView.isRecording = false }
+    }
+
     private func populate() {
         isPopulating = true
         defer { isPopulating = false }
@@ -265,19 +324,30 @@ final class CustomLayoutRowView: NSView, NSTextFieldDelegate {
 
     func setStatus(_ text: String) { statusLabel.stringValue = text }
 
-    // Commit name + rect on end-editing of any field.
+    // Commit name + rect on end-editing of any field. Rather than rejecting an
+    // out-of-bounds combination wholesale (which made X/Y feel un-editable when the
+    // default w/h left no room), CLAMP into the nearest valid rect — keeping the typed
+    // x/y position and shrinking w/h to fit — then repopulate so the fields show what
+    // was actually stored.
     func controlTextDidEndEditing(_ obj: Notification) {
         guard !isPopulating, var layout = store.layout(id: layoutId) else { return }
-        if let rect = NormalizedRect.fromPercents(x: xField.doubleValue, y: yField.doubleValue,
-                                                  w: wField.doubleValue, h: hField.doubleValue) {
-            layout.name = nameField.stringValue
-            layout.rect = rect
-            store.update(layout)
-        } else {
-            NSSound.beep()
-            populate()   // restore valid values
-        }
+        let raw = NormalizedRect(x: CGFloat(xField.doubleValue) / 100, y: CGFloat(yField.doubleValue) / 100,
+                                 w: CGFloat(wField.doubleValue) / 100, h: CGFloat(hField.doubleValue) / 100)
+        let rect = raw.isValid ? raw : raw.clamped()
+        layout.name = nameField.stringValue
+        layout.rect = rect
+        store.update(layout)
+        if rect != raw { populate() }   // reflect any clamping back into the fields
     }
 
     @objc private func deleteLayout() { store.delete(id: layoutId) }
+}
+
+// MARK: - Flipped container
+
+/// A top-left-origin container used as the scroll view's document view so list rows lay out
+/// from the top and the list grows/scrolls downward (a non-flipped doc bottom-anchors short
+/// content, which hid newly added rows).
+final class FlippedView: NSView {
+    override var isFlipped: Bool { true }
 }

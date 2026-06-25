@@ -28,6 +28,13 @@ class ShortcutRecordingObserver: NSObject {
                                 forKeyPath: "recording",
                                 context: &Self.recordingObservationContext)
         }
+        // If an observed recorder is still mid-recording when this observer is destroyed
+        // (e.g. its row was deleted/rebuilt during recording), nothing else will post the
+        // "recording ended" signal — leaving listeners (the custom-layout shortcut manager)
+        // suspended indefinitely. Post the resume here as a safety net.
+        if !recordingViews.isEmpty {
+            Notification.Name.shortcutRecording.post(object: false)
+        }
     }
 
     override func observeValue(forKeyPath keyPath: String?,

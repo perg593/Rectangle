@@ -32,12 +32,19 @@ enum CustomLayoutConflict {
     }
 }
 
-/// Record-time validator for the MASShortcutView recorder. Rejects (quietly, via the
-/// recorder's beep) a base-invalid chord OR one that conflicts with a WindowAction or
-/// ANY other custom layout. The human explanation is the per-row status label.
+/// Record-time validator for the MASShortcutView recorder. Rejects a base-invalid chord
+/// OR one that conflicts with a WindowAction or ANY other custom layout. On a *conflict*
+/// rejection (not a base-invalid one) it fires `onConflict` with the conflicting target's
+/// display name so the UI can surface an explicit alert; the recorder still beeps and the
+/// per-row status label remains the passive explanation. UI stays out of this file — the
+/// closure is the seam.
 final class CustomLayoutShortcutValidator: MASShortcutValidator {
     private let conflictDefaults: UserDefaults
     private let otherLayouts: () -> [CustomLayout]
+
+    /// Called with the conflicting WindowAction / custom-layout name when a base-valid chord
+    /// is rejected for colliding with something else. Not called for base-invalid chords.
+    var onConflict: ((String) -> Void)?
 
     init(conflictDefaults: UserDefaults = .standard, otherLayouts: @escaping () -> [CustomLayout]) {
         self.conflictDefaults = conflictDefaults
@@ -48,8 +55,16 @@ final class CustomLayoutShortcutValidator: MASShortcutValidator {
     override func isShortcutValid(_ shortcut: MASShortcut!) -> Bool {
         guard super.isShortcutValid(shortcut) else { return false }   // base rules first
         guard let shortcut else { return true }
-        return CustomLayoutConflict.windowActionName(for: shortcut, in: conflictDefaults) == nil
-            && CustomLayoutConflict.customLayoutId(for: shortcut, in: otherLayouts()) == nil
+        if let actionName = CustomLayoutConflict.windowActionName(for: shortcut, in: conflictDefaults) {
+            onConflict?(actionName)
+            return false
+        }
+        let others = otherLayouts()
+        if let conflictId = CustomLayoutConflict.customLayoutId(for: shortcut, in: others) {
+            onConflict?(others.first { $0.id == conflictId }?.name ?? "another layout")
+            return false
+        }
+        return true
     }
 }
 

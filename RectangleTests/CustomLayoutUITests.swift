@@ -74,6 +74,25 @@ final class CustomLayoutConflictHelperTests: XCTestCase {
         XCTAssertFalse(validator.isShortcutValid(MASShortcut(keyCode: 0, modifierFlags: [])),
                        "base-invalid (no modifier) chord still rejected via super")
     }
+
+    func testValidatorReportsConflictName() {
+        injectWindowAction(chord(123, [.control, .option]), .leftHalf)
+        let editedId = UUID(), otherId = UUID()
+        let other = CustomLayout(id: otherId, name: "Right Half",
+                                 rect: NormalizedRect(x: 0.5, y: 0, w: 0.5, h: 1), hotkey: HotkeyData(chord(97)))
+        let all = [layout(editedId, chord(96)), other]
+        let validator = CustomLayoutShortcutValidator(
+            conflictDefaults: conflicts,
+            otherLayouts: { all.filter { $0.id != editedId } })
+
+        var reported: [String] = []
+        validator.onConflict = { reported.append($0) }
+
+        XCTAssertTrue(validator.isShortcutValid(chord(98)))            // free → no report
+        XCTAssertFalse(validator.isShortcutValid(chord(97)))           // other layout
+        XCTAssertFalse(validator.isShortcutValid(chord(123, [.control, .option])))   // WindowAction
+        XCTAssertEqual(reported, ["Right Half", WindowAction.leftHalf.name])
+    }
 }
 
 final class CustomLayoutStatusTextTests: XCTestCase {
@@ -92,8 +111,21 @@ final class CustomLayoutStatusTextTests: XCTestCase {
     }
 
     func testDefaultNewLayoutIsValid() {
-        let l = CustomLayout(name: "New Layout", rect: NormalizedRect(x: 0, y: 0, w: 0.5, h: 1))
+        // Matches CustomLayoutsWindowController.addLayout: a top-left quarter, which leaves
+        // headroom in all four fields so X/Y/W/H are immediately editable.
+        let l = CustomLayout(name: "New Layout", rect: NormalizedRect(x: 0, y: 0, w: 0.5, h: 0.5))
         XCTAssertTrue(l.rect.isValid)
         XCTAssertNil(l.hotkey)
+    }
+
+    func testInvalidPercentsClampPreservingPosition() {
+        // The editor clamps out-of-bounds input instead of rejecting it: x/y position is kept
+        // and w/h shrink to fit. Moving a full-height layout down must remain possible.
+        let raw = NormalizedRect(x: 0, y: 0.5, w: 0.5, h: 1)   // y + h = 1.5 → invalid
+        XCTAssertFalse(raw.isValid)
+        let c = raw.clamped()
+        XCTAssertTrue(c.isValid)
+        XCTAssertEqual(c.x, 0); XCTAssertEqual(c.y, 0.5)
+        XCTAssertEqual(c.w, 0.5); XCTAssertEqual(c.h, 0.5, accuracy: 1e-9)   // h shrunk to fit
     }
 }
