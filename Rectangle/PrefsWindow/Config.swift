@@ -97,7 +97,7 @@ extension Defaults {
             let exists = try? configURL.checkResourceIsReachable()
             if exists == true {
                 // Defense-in-depth: any process running as this user can drop
-                // a RectangleConfig.json in Application Support and have it
+                // a ChivaConfig.json in Application Support and have it
                 // silently applied on next launch, overwriting shortcuts and
                 // defaults. Require the user to confirm before loading.
                 //

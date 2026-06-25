@@ -77,10 +77,14 @@ security import "$TMP/identity.p12" -k "$KC" -P "$P12PW" -T /usr/bin/codesign -A
 # allow codesign to use the key non-interactively (uses THIS keychain's pw, not login)
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCPW" "$KC" >/dev/null
 
-# add to the user search list, keeping the existing keychains
-EXISTING="$(security list-keychains -d user | sed -e 's/^[[:space:]]*//' -e 's/"//g')"
-# shellcheck disable=SC2086
-security list-keychains -d user -s "$KC" $EXISTING
+# add to the user search list, keeping the existing keychains (handles paths with spaces)
+existing=()
+while IFS= read -r line; do
+  line="${line#"${line%%[![:space:]]*}"}"   # ltrim
+  line="${line%\"}"; line="${line#\"}"       # strip surrounding quotes
+  [[ -n "$line" ]] && existing+=("$line")
+done < <(security list-keychains -d user)
+security list-keychains -d user -s "$KC" "${existing[@]}"
 
 echo "→ verifying codesign can use the identity…"
 cp /bin/echo "$TMP/signtest"
