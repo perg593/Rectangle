@@ -223,6 +223,7 @@ class WindowCalculationFactory {
      .maximizeHeight: maxHeightCalculation,
      .previousDisplay: nextPrevDisplayCalculation,
      .nextDisplay: nextPrevDisplayCalculation,
+     .nextDisplayMaxHeight: nextPrevDisplayCalculation,
      .larger: changeSizeCalculation,
      .smaller: changeSizeCalculation,
      .largerWidth: changeSizeCalculation,
