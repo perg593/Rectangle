@@ -75,6 +75,7 @@
 		9821403522B38A2B00ABFB3F /* UpperRightCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9821403422B38A2B00ABFB3F /* UpperRightCalculation.swift */; };
 		9821403722B3D16700ABFB3F /* MaximizeHeightCalculation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9821403622B3D16700ABFB3F /* MaximizeHeightCalculation.swift */; };
 		9821403F22B3EBD900ABFB3F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9821403E22B3EBD900ABFB3F /* AppDelegate.swift */; };
+		CA17DA000000000000000002 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA17DA000000000000000001 /* Assets.xcassets */; };
 		9821404322B3EBDA00ABFB3F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9821404222B3EBDA00ABFB3F /* Assets.xcassets */; };
 		9821404622B3EBDA00ABFB3F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9821404422B3EBDA00ABFB3F /* Main.storyboard */; };
 		9821405B22B3ECCA00ABFB3F /* RectangleLauncher.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9821403C22B3EBD900ABFB3F /* RectangleLauncher.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -310,6 +311,7 @@
 		9821403622B3D16700ABFB3F /* MaximizeHeightCalculation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaximizeHeightCalculation.swift; sourceTree = "<group>"; };
 		9821403C22B3EBD900ABFB3F /* RectangleLauncher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RectangleLauncher.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9821403E22B3EBD900ABFB3F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		CA17DA000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9821404222B3EBDA00ABFB3F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9821404522B3EBDA00ABFB3F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9821404722B3EBDA00ABFB3F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -502,6 +504,7 @@
 			children = (
 				A98F472ABDB5B7AFBECB3D79 /* main.swift */,
 				9688FD1A7FFDEC385D6980FE /* Info.plist */,
+				CA17DA000000000000000001 /* Assets.xcassets */,
 			);
 			name = Divvy2SpikeHelper;
 			path = Divvy2SpikeHelper;
@@ -1077,6 +1080,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA17DA000000000000000002 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1336,6 +1340,7 @@
 		5C056D3C198FA7EF7C3155A4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "-";
@@ -1657,6 +1662,7 @@
 		EF89906D9C9741ED3ACD23C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "-";
