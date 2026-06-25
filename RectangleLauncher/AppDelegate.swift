@@ -28,7 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             components.removeLast()
             components.removeLast()
             components.append("MacOS")
-            components.append("Moving Van")
+            components.append("Chiva")
             let newPath = NSString.path(withComponents: components)
             NSWorkspace.shared.launchApplication(newPath)
         }

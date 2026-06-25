@@ -6,7 +6,7 @@ class ApplicationToggle: NSObject {
     
     private var disabledApps = Set<String>()
     public private(set) static var frontAppId: String? = "com.perg593.divvy2"
-    public private(set) static var frontAppName: String? = "Moving Van"
+    public private(set) static var frontAppName: String? = "Chiva"
     public private(set) static var shortcutsDisabled: Bool = false
 
     private let shortcutManager: ShortcutManager

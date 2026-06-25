@@ -90,9 +90,9 @@ extension Defaults {
     
     static func loadFromSupportDir() {
         if let rectangleSupportURL = getSupportDir()?
-            .appendingPathComponent("Moving Van", isDirectory: true) {
+            .appendingPathComponent("Chiva", isDirectory: true) {
 
-            let configURL = rectangleSupportURL.appendingPathComponent("MovingVanConfig.json")
+            let configURL = rectangleSupportURL.appendingPathComponent("ChivaConfig.json")
                         
             let exists = try? configURL.checkResourceIsReachable()
             if exists == true {
@@ -119,16 +119,16 @@ extension Defaults {
                 
                 guard isSafe else {
                     AlertUtil.oneButtonAlert(
-                        question: "Refused to load MovingVanConfig.json",
-                        text: "The configuration file at \(path) is a symlink or world-writable. Moving Van has refused to load it. Remove the file or fix its permissions and try again."
+                        question: "Refused to load ChivaConfig.json",
+                        text: "The configuration file at \(path) is a symlink or world-writable. Chiva has refused to load it. Remove the file or fix its permissions and try again."
                     )
                     try? fm.removeItem(at: configURL)
                     return
                 }
                 
                 let response = AlertUtil.twoButtonAlert(
-                    question: "Apply Moving Van configuration?",
-                    text: "A configuration file was found at \(path). Applying it will overwrite your current Moving Van shortcuts and preferences. Apply now?",
+                    question: "Apply Chiva configuration?",
+                    text: "A configuration file was found at \(path). Applying it will overwrite your current Chiva shortcuts and preferences. Apply now?",
                     confirmText: "Apply",
                     cancelText: "Discard"
                 )
@@ -139,14 +139,14 @@ extension Defaults {
                 
                 load(fileUrl: configURL)
                 do {
-                    let newFilename = "MovingVanConfig\(timestamp()).json"
+                    let newFilename = "ChivaConfig\(timestamp()).json"
                     
                     try fm.moveItem(atPath: configURL.path, toPath: rectangleSupportURL.appendingPathComponent(newFilename).path)
                 } catch {
                     do {
                         try fm.removeItem(at: configURL)
                     } catch {
-                        AlertUtil.oneButtonAlert(question: "Error after loading from Support Dir", text: "Unable to rename/remove MovingVanConfig.json from \(rectangleSupportURL) after loading.")
+                        AlertUtil.oneButtonAlert(question: "Error after loading from Support Dir", text: "Unable to rename/remove ChivaConfig.json from \(rectangleSupportURL) after loading.")
                     }
                 }
             }
