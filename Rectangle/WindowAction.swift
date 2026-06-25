@@ -135,7 +135,8 @@ enum WindowAction: Int, Codable {
          displaySix = 125,
          displaySeven = 126,
          displayEight = 127,
-         displayNine = 128
+         displayNine = 128,
+         nextDisplayMaxHeight = 129
 
     // Order matters here - it's used in the menu
     static let active = [leftHalf, rightHalf, centerHalf, topHalf, bottomHalf,
@@ -144,7 +145,7 @@ enum WindowAction: Int, Codable {
                          topVerticalThird, middleVerticalThird, bottomVerticalThird, topVerticalTwoThirds, bottomVerticalTwoThirds,
                          maximize, almostMaximize, maximizeHeight, larger, smaller, largerWidth, smallerWidth, largerHeight, smallerHeight,
                          center, centerProminently, restore,
-                         nextDisplay, previousDisplay,
+                         nextDisplay, previousDisplay, nextDisplayMaxHeight,
                          moveLeft, moveRight, moveUp, moveDown,
                          firstFourth, secondFourth, thirdFourth, lastFourth, firstThreeFourths, centerThreeFourths, lastThreeFourths,
                          topLeftSixth, topCenterSixth, topRightSixth, bottomLeftSixth, bottomCenterSixth, bottomRightSixth,
@@ -209,6 +210,7 @@ enum WindowAction: Int, Codable {
         case .maximizeHeight: return "maximizeHeight"
         case .previousDisplay: return "previousDisplay"
         case .nextDisplay: return "nextDisplay"
+        case .nextDisplayMaxHeight: return "nextDisplayMaxHeight"
         case .larger: return "larger"
         case .smaller: return "smaller"
         case .bottomHalf: return "bottomHalf"
@@ -369,6 +371,9 @@ enum WindowAction: Int, Codable {
         case .nextDisplay:
             key = "Jnd-Lc-nlh.title"
             value = "Next Display"
+        case .nextDisplayMaxHeight:
+            key = "nextDisplayMaxHeight.title"
+            value = "Next Display + Max Height"
         case .larger:
             key = "Eah-KL-kbn.title"
             value = "Larger"
@@ -652,7 +657,7 @@ enum WindowAction: Int, Codable {
     
     var isDragSnappable: Bool {
         switch self {
-        case .restore, .previousDisplay, .nextDisplay, .moveUp, .moveDown, .moveLeft, .moveRight, .specified, .reverseAll, .tileAll, .cascadeAll, .larger, .smaller, .largerWidth, .smallerWidth, .cascadeActiveApp, .tileActiveApp,
+        case .restore, .previousDisplay, .nextDisplay, .nextDisplayMaxHeight, .moveUp, .moveDown, .moveLeft, .moveRight, .specified, .reverseAll, .tileAll, .cascadeAll, .larger, .smaller, .largerWidth, .smallerWidth, .cascadeActiveApp, .tileActiveApp,
             // Ninths
             .topLeftNinth, .topCenterNinth, .topRightNinth, .middleLeftNinth, .middleCenterNinth, .middleRightNinth, .bottomLeftNinth, .bottomCenterNinth, .bottomRightNinth,
             // Corner thirds
@@ -840,7 +845,8 @@ enum WindowAction: Int, Codable {
         case .bottomCenterRightSixteenth: return NSImage(imageLiteralResourceName: "bottomCenterRightSixteenthTemplate")
         case .bottomRightSixteenth: return NSImage(imageLiteralResourceName: "bottomRightSixteenthTemplate")
         case .displayOne, .displayTwo, .displayThree, .displayFour, .displayFive,
-             .displaySix, .displaySeven, .displayEight, .displayNine:
+             .displaySix, .displaySeven, .displayEight, .displayNine,
+             .nextDisplayMaxHeight:
             return NSImage(imageLiteralResourceName: "nextDisplayTemplate")
         }
     }
@@ -892,7 +898,7 @@ enum WindowAction: Int, Codable {
             return Defaults.applyGapsToMaximize.userDisabled ? .none : .both;
         case .maximizeHeight:
             return Defaults.applyGapsToMaximizeHeight.userDisabled ? .none : .vertical;
-        case .almostMaximize, .previousDisplay, .nextDisplay, .larger, .smaller, .largerWidth, .smallerWidth, .largerHeight, .smallerHeight, .center, .centerProminently, .restore, .specified, .reverseAll, .tileAll, .cascadeAll, .cascadeActiveApp, .tileActiveApp,
+        case .almostMaximize, .previousDisplay, .nextDisplay, .nextDisplayMaxHeight, .larger, .smaller, .largerWidth, .smallerWidth, .largerHeight, .smallerHeight, .center, .centerProminently, .restore, .specified, .reverseAll, .tileAll, .cascadeAll, .cascadeActiveApp, .tileActiveApp,
              .displayOne, .displayTwo, .displayThree, .displayFour, .displayFive,
              .displaySix, .displaySeven, .displayEight, .displayNine:
             return .none
@@ -905,7 +911,7 @@ enum WindowAction: Int, Codable {
              .larger, .smaller, .largerWidth, .smallerWidth, .largerHeight, .smallerHeight,
              .center, .centerProminently,
              .restore,
-             .nextDisplay, .previousDisplay,
+             .nextDisplay, .previousDisplay, .nextDisplayMaxHeight,
              .displayOne, .displayTwo, .displayThree, .displayFour, .displayFive,
              .displaySix, .displaySeven, .displayEight, .displayNine,
              .moveLeft, .moveRight, .moveUp, .moveDown,
@@ -941,7 +947,7 @@ enum WindowAction: Int, Codable {
             return .thirds
         case .smaller, .larger, .smallerWidth, .largerWidth, .smallerHeight, .largerHeight:
             return .size
-        case .previousDisplay, .nextDisplay,
+        case .previousDisplay, .nextDisplay, .nextDisplayMaxHeight,
              .displayOne, .displayTwo, .displayThree, .displayFour, .displayFive,
              .displaySix, .displaySeven, .displayEight, .displayNine:
             return .display
