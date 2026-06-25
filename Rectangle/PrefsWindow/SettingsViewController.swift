@@ -2,7 +2,6 @@
 
 import Cocoa
 import ServiceManagement
-import Sparkle
 import MASShortcut
 
 class SettingsViewController: NSViewController {
@@ -114,7 +113,7 @@ class SettingsViewController: NSViewController {
     }
     
     @IBAction func checkForUpdates(_ sender: Any) {
-        AppDelegate.instance.updaterController?.checkForUpdates(sender)
+        // No-op: auto-update is disabled in this fork (no Sparkle feed).
     }
     
     @IBAction func toggleDoubleClickTitleBar(_ sender: NSButton) {
@@ -955,15 +954,15 @@ class SettingsViewController: NSViewController {
     override func awakeFromNib() {
         initializeToggles()
 
-        checkForUpdatesAutomaticallyCheckbox.bind(.value, to: AppDelegate.instance.updaterController.updater, withKeyPath: "automaticallyChecksForUpdates", options: nil)
-        
+        // Sparkle is disabled in this fork; hide the update UI surface.
+        checkForUpdatesAutomaticallyCheckbox.isHidden = true
+        checkForUpdatesButton.isHidden = true
+
         let appVersionString: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
         let buildString: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as! String
         
         versionLabel.stringValue = "v" + appVersionString + " (" + buildString + ")"
 
-        updateCheckForUpdatesTitle()
-        
         initializeTodoModeSettings()
         shortcutRecordingObserver.observe([toggleTodoShortcutView, reflowTodoShortcutView])
         
@@ -990,16 +989,8 @@ class SettingsViewController: NSViewController {
         Notification.Name.menuBarIconHidden.onPost(using: {_ in
             self.hideMenuBarIconCheckbox.state = .on
         })
-        
-        Notification.Name.updateAvailability.onPost { _ in
-            self.updateCheckForUpdatesTitle()
-        }
     }
-    
-    func updateCheckForUpdatesTitle() {
-        checkForUpdatesButton.title = AppDelegate.instance.hasPendingUpdate ? "Update Available…".localized : "Check for Updates…".localized(key: "74m-kw-w1f.title")
-    }
-    
+
     func initializeTodoModeSettings() {
         todoCheckbox.state = Defaults.todo.userEnabled ? .on : .off
         todoAppWidthField.stringValue = String(Defaults.todoSidebarWidth.value)

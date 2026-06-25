@@ -1,36 +1,28 @@
-.idea
-**/.DS_Store
-*/xcuserdata/
-xcuserdata/
-**.xcuserstate
-*.xcworkspace
-Pods
+# ─── macOS ───
+.DS_Store
 
-## Xcode per-user config
-*.mode1
-*.mode1v3
-*.mode2v3
-*.perspective
-*.perspectivev3
-*.pbxuser
-
-## Xcode Patch
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcworkspace/contents.xcworkspacedata
-/*.gcno
-
-## Build products
+# ─── Xcode / Swift build ───
 build/
-*.o
-*.LinkFileList
-*.hmap
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.moved-aside
+.swiftpm/
+.build/
+Packages/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
 
-## Automatic backup files
-*~.nib/
-*.swp
-*~
-*.dat
-*.dep
+# ─── Secrets / credentials (never commit) ───
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*ExportOptions*.plist.secret
 
+# ─── Claude Code local settings (may contain keys) ───
+.claude/settings.local.json

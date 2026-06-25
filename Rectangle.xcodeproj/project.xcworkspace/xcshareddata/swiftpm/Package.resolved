@@ -1,0 +1,23 @@
+{
+  "originHash" : "78b19b41ba921118d83812c850291731e82cf35c6d68f7fa7db9125167e488e5",
+  "pins" : [
+    {
+      "identity" : "masshortcut",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rxhanson/MASShortcut",
+      "state" : {
+        "revision" : "2f9fbb3f959b7a683c6faaf9638d22afad37a235"
+      }
+    },
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle",
+      "state" : {
+        "revision" : "d46d456107feacc80711b21847b82b07bd9fb46e",
+        "version" : "2.9.3"
+      }
+    }
+  ],
+  "version" : 3
+}

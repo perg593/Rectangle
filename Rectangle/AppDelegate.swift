@@ -1,24 +1,17 @@
 /// AppDelegate.swift
 
 import Cocoa
-import Sparkle
 import ServiceManagement
 import os.log
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    static let launcherAppId = "com.knollsoft.RectangleLauncher"
+    static let launcherAppId = "com.perg593.divvy2.RectangleLauncher"
 
     private let accessibilityAuthorization = AccessibilityAuthorization()
     private let statusItem = RectangleStatusItem.instance
     static let windowHistory = WindowHistory()
-    var updaterController: SPUStandardUpdaterController!
-    var hasPendingUpdate = false {
-        didSet {
-            Notification.Name.updateAvailability.post()
-        }
-    }
 
     private var shortcutManager: ShortcutManager!
     private var windowManager: WindowManager!
@@ -26,6 +19,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowCalculationFactory: WindowCalculationFactory!
     private var snappingManager: SnappingManager!
     private var titleBarManager: TitleBarManager!
+    private var customLayoutStore: CustomLayoutStore!
+    private var customLayoutShortcutManager: CustomLayoutShortcutManager!
+    private var customLayoutsWindowController: CustomLayoutsWindowController?
     
     private var prefsWindowController: NSWindowController?
     
@@ -76,12 +72,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotificationCenter.default.addObserver(self, selector: #selector(rebuildMenu), name: .showAdditionalSizesInMenuChanged, object: nil)
 
-        updaterController = SPUStandardUpdaterController(updaterDelegate: nil, userDriverDelegate: self)
-        
-        checkAutoCheckForUpdates()
-        
+        // Sparkle auto-update is disabled for this personal fork (no update feed).
+        updatesMenuItem.isHidden = true
+
         Notification.Name.configImported.onPost(using: { _ in
-            self.checkAutoCheckForUpdates()
             self.statusItem.refreshVisibility()
             self.applicationToggle.reloadFromDefaults()
             self.shortcutManager.reloadFromDefaults()
@@ -141,10 +135,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func checkAutoCheckForUpdates() {
-        updaterController.updater.automaticallyChecksForUpdates = Defaults.SUEnableAutomaticChecks.enabled
-    }
-    
     func accessibilityTrusted() {
         self.windowCalculationFactory = WindowCalculationFactory()
         self.windowManager = WindowManager()
@@ -155,6 +145,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.initializeTodo()
         checkForProblematicApps()
         MacTilingDefaults.checkForBuiltInTiling(skipIfAlreadyNotified: true)
+
+        // Divvy-2 parallel custom-layout subsystem (M1 store + M2 shortcut manager).
+        self.customLayoutStore = CustomLayoutStore()
+        self.customLayoutShortcutManager = CustomLayoutShortcutManager(
+            store: customLayoutStore,
+            reclaim: { [weak shortcutManager] in shortcutManager?.reloadFromDefaults() })
+        self.customLayoutShortcutManager.start()
+        addCustomLayoutsMenuItem()
+
+        // M0.5 architecture spike: only when explicitly requested via launch arg.
+        // Runs here (not in applicationDidFinishLaunching) so applicationToggle is non-nil.
+        if CommandLine.arguments.contains("--divvy2-spike") {
+            Divvy2SpikeRunner.run(applicationToggle: applicationToggle,
+                                  windowHistory: AppDelegate.windowHistory,
+                                  rectangleShortcutManager: shortcutManager)
+        }
     }
     
     func checkForConflictingApps() {
@@ -280,11 +286,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @IBAction func checkForUpdates(_ sender: Any) {
-        updaterController.checkForUpdates(sender)
+        // No-op: auto-update is disabled in this fork (no Sparkle feed).
     }
     
     @IBAction func authorizeAccessibility(_ sender: Any) {
         accessibilityAuthorization.showAuthorizationWindow()
+    }
+
+    private func addCustomLayoutsMenuItem() {
+        guard let menu = mainStatusMenu,
+              !menu.items.contains(where: { $0.action == #selector(openCustomLayouts) }) else { return }
+        let item = NSMenuItem(title: "Custom Layouts…", action: #selector(openCustomLayouts), keyEquivalent: "")
+        item.target = self
+        if let prefIndex = menu.items.firstIndex(where: { $0.action == #selector(openPreferences) }) {
+            menu.insertItem(item, at: prefIndex + 1)
+        } else {
+            menu.insertItem(item, at: 0)
+        }
+    }
+
+    @objc func openCustomLayouts(_ sender: Any) {
+        guard customLayoutStore != nil, customLayoutShortcutManager != nil else { return }
+        if customLayoutsWindowController == nil {
+            customLayoutsWindowController = CustomLayoutsWindowController(
+                store: customLayoutStore, manager: customLayoutShortcutManager)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        customLayoutsWindowController?.showWindow(self)
     }
 
     private func checkLaunchOnLogin() {
@@ -639,7 +667,7 @@ extension AppDelegate {
             
             func confirmExecuteTask(action: String, bundleId: String) -> Bool {
                 // Defense-in-depth: any web page or another app can trigger the
-                // `rectangle://execute-task=ignore-app` URL with an arbitrary
+                // `divvy2://execute-task=ignore-app` URL with an arbitrary
                 // bundle-id. Without confirmation this silently mutates
                 // Rectangle's `disabledApps` defaults. Skip the prompt only
                 // when Rectangle itself is frontmost (i.e. the user almost
@@ -649,8 +677,8 @@ extension AppDelegate {
                 }
                 let alert = NSAlert()
                 alert.alertStyle = .warning
-                alert.messageText = "Allow Rectangle URL action?".localized
-                alert.informativeText = String(format: "An external source asked Rectangle to perform \"%@\" on app bundle id \"%@\". Allow?".localized, action, bundleId)
+                alert.messageText = "Allow Chiva URL action?".localized
+                alert.informativeText = String(format: "An external source asked Chiva to perform \"%@\" on app bundle id \"%@\". Allow?".localized, action, bundleId)
                 alert.addButton(withTitle: "Allow".localized)
                 alert.addButton(withTitle: "Cancel".localized)
                 NSApp.activate(ignoringOtherApps: true)
@@ -688,24 +716,3 @@ extension AppDelegate {
     }
 }
 
-extension AppDelegate: SPUStandardUserDriverDelegate {
-    
-    var supportsGentleScheduledUpdateReminders: Bool {
-        true
-    }
-
-    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
-        if immediateFocus {
-            return true
-        }
-        
-        self.hasPendingUpdate = true
-        updatesMenuItem.title = "Update Available…".localized
-        return false
-    }
-    
-    func standardUserDriverWillFinishUpdateSession() {
-        self.hasPendingUpdate = false
-        updatesMenuItem.title = "Check for Updates…".localized(key: "HIK-3r-i7E.title")
-    }
-}
